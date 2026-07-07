@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #000; color: #fff; margin: 0; padding: 10px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
+    .display { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+    #main-time { font-size: 72px; font-weight: 900; font-family: 'monospace'; margin: 0; line-height: 1; color: #fff; }
+    #intertempo { font-size: 20px; color: #00e5ff; font-family: 'monospace'; height: 50px; margin-top: 5px; font-weight: bold; line-height: 1.2; }
+    #sub-info { font-size: 14px; color: #ffeb3b; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; }
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr; background: #111; border: 1px solid #333; border-radius: 10px; padding: 8px; margin-bottom: 10px; }
+    .stat-box { text-align: center; } .stat-label { font-size: 10px; color: #aaa; text-transform: uppercase; } .stat-val { font-size: 18px; font-weight: bold; font-family: monospace; }
+    .action-grid, .rival-action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px; }
+    .btn { width: 100%; border-radius: 20px; color: #fff; font-weight: 900; text-transform: uppercase; border: none; cursor: pointer; position: relative; }
+    .split-btn { height: 125px; font-size: 32px; background: #2979ff; box-shadow: 0 6px 0 #1565c0; }
+    .lap-btn { height: 125px; font-size: 44px; background: #d50000; box-shadow: 0 6px 0 #b71c1c; }
+    .r-split-giant { height: 125px; font-size: 26px; background: #1976d2; box-shadow: 0 6px 0 #0d47a1; }
+    .r-lap-giant { height: 125px; font-size: 32px; background: #b71c1c; box-shadow: 0 6px 0 #7f0000; }
+    .rival-container { display: flex; gap: 10px; margin-bottom: 10px; width: 100%; }
+    .rival-input { width: 30%; height: 70px; border-radius: 20px; background: #000; color: #fff; border: 2px solid #555; text-align: center; font-size: 1.5rem; font-weight: bold; font-family: monospace; }
+    .rival-btn { flex: 1; height: 70px; background: #7cc2f2; color: #000; font-size: 20px; border-radius: 40px; display: flex; justify-content: center; align-items: center; box-shadow: 0 5px 0 #5a9bc7; margin: 0; font-weight: 900; }
+    .bottom-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .home-btn { height: 55px; background: #ff9800; font-size: 16px; color: #fff; }
+    .stop-btn { height: 55px; background: #c62828; font-size: 18px; }
+    .reset-btn { height: 55px; background: #444; font-size: 16px; }
+    #mechanic-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; background: black; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; box-sizing: border-box; }
+    .team-logo { max-width: 130px; border-radius: 50%; background: white; padding: 5px; margin-bottom: 10px; }
+    #mechanic-overlay h2 { color: #ff9800; font-size: 1.8rem; margin: 0 0 10px 0; text-transform: uppercase; font-weight: 900; }
+    .overlay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 380px; margin-bottom: 12px; }
+    .square-box { height: 100px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem; border: none; cursor: pointer; position: relative; color: white; text-transform: uppercase; }
+    .square-box i { font-size: 1.8rem; margin-bottom: 4px; } .square-box select { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+    .bg-blue { background: #3498db; } .bg-orange { background: #e67e22; } .bg-green { background: #27ae60; } .bg-purple { background: #9b59b6; } .bg-red { background: #e74c3c; } .bg-yellow { background: #f1c40f; color: black !important; }
+    
+    .wide-voice-bar {
+      width: 100%;
+      max-width: 380px;
+      height: 55px;
+      background: #222;
+      border: 2px dashed #ff3d00;
+      border-radius: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      margin-bottom: 12px;
+      box-sizing: border-box;
+      transition: all 0.3s ease;
+    }
+    .wide-voice-bar i { font-size: 1.4rem; color: #ff3d00; }
+    #voice-status { font-size: 13px; color: #fff; font-weight: bold; text-transform: uppercase; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    
+    .listening-active {
+      background: #ff1744 !important;
+      border: 2px solid #fff !important;
+      animation: pulseBar 1.5s infinite;
+    }
+    .listening-active i, .listening-active #voice-status { color: #fff !important; }
+    @keyframes pulseBar { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
+  </style>
+</head>
+<body>
+
+  <select id="pilota" style="display:none;"></select> 
+  <input type="hidden" id="sessione">
+  <input type="hidden" id="nota-vocale-testo" value="">
+
+  <!-- OVERLAY SCHERMATA INIZIALE -->
+  <div id="mechanic-overlay">
+    <h2>CRONOSTEU PRO</h2>
+    <img src="https://i.postimg.cc/s2sdZ6hd/IMG_6194_mgk.jpg" class="team-logo">
+    
+    <div class="overlay-grid">
+      <div class="square-box bg-blue"><i class="fa-solid fa-wrench"></i><span id="label-mechanic">MECCANICO</span><select id="mechanic-select" onchange="updateOverlayLabel('mechanic')"><option value="" disabled selected>CARICAMENTO...</option></select></div>
+      <div class="square-box bg-orange"><i class="fa-solid fa-tags"></i><span id="label-category">CATEGORIA</span><select id="category-select" onchange="updateOverlayLabel('category')"><option value="" disabled selected>CARICAMENTO...</option></select></div>
+      <div class="square-box bg-green"><i class="fa-solid fa-map-marked-alt"></i><span id="label-track">PISTA</span><select id="track-select" onchange="updateOverlayLabel('track')"><option value="" disabled selected>CARICAMENTO...</option></select></div>
+      <div class="square-box bg-purple"><i class="fa-solid fa-user-astronaut"></i><span id="label-driver">PILOTA</span><select id="driver-select" onchange="updateOverlayLabel('driver')"><option value="" disabled selected>CARICAMENTO...</option></select></div>
+      <div class="square-box bg-red" style="grid-column: span 2; height: 85px;"><i class="fa-solid fa-flag-checkered"></i><span id="label-session">TIPO PROVA</span><select id="session-select" onchange="updateOverlayLabel('session')"><option value="" disabled selected>CARICAMENTO...</option></select></div>
+    </div>
+    
+    <!-- TASTONE VOCALE ORIZZONTALE -->
+    <div class="wide-voice-bar" id="voice-bar-btn" onclick="toggleVoiceRecognition();">
+      <i class="fa-solid fa-microphone" id="mic-icon"></i>
+      <span id="voice-status">PREMI E DETTA NOTE ASSETTO</span>
+    </div>
+    
+    <button class="square-box bg-yellow" style="width: 100%; max-width: 380px; height: 60px;" onclick="confirmOverlayAll()"><i class="fa-solid fa-play"></i><span>PADDOCK</span></button>
+  </div>
+
+  <!-- INTERFACCIA CRONOMETRO -->
+  <div class="display">
+    <div id="sub-info">PRONTO</div> <div id="main-time">00:00.000</div> <div id="intertempo">--:--.---</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-label">Best Lap</div><div id="best-val" style="color:#ffeb3b">--:--.---</div></div>
+    <div class="stat-box"><div class="stat-label">Ideal Lap</div><div id="ideal-val" style="color:#00e5ff">--:--.---</div></div>
+  </div>
+  <div class="action-grid">
+    <button class="btn split-btn" onclick="press('Split')">SPLIT</button> <button class="btn lap-btn" onclick="press('Lap1')">LAP</button>
+  </div>
+  <div class="rival-container" id="rival-input-bar">
+    <input type="number" id="rival-input" class="rival-input" placeholder="N°" inputmode="numeric" pattern="[0-9]*"> <button class="btn rival-btn" onclick="press('RivalStart')">RIVAL START</button>
+  </div>
+  <div class="rival-action-grid" id="rival-giant-grid" style="display: none;">
+    <button class="btn r-split-giant" onclick="press('RivalSplit')"><span id="r-split-label">R-SPLIT</span><br><span id="r-split-box" style="font-size: 22px; font-family: monospace; color: #ffeb3b;">--:--.---</span></button> <button class="btn r-lap-giant" onclick="press('RivalLap')">R-LAP<br><span id="r-lap-box" style="font-size: 24px; font-family: monospace; color: #fff;">00:00.000</span></button>
+  </div>
+  <div class="bottom-bar">
+    <button class="btn home-btn" onclick="press('Home')"><i class="fa-solid fa-house"></i> HOME</button> <button class="btn stop-btn" onclick="press('Stop')">STOP</button> <button class="btn reset-btn" onclick="press('Reset')">RESET</button>
+  </div>
+
+  <audio id="beep" src="https://actions.google.com/sounds/v1/states/notification.ogg"></audio>
+
+  <script>
+    let tInizio = 0, tUltimo = 0, splitCount = 0, localRecords = {}, varMechanic = "", varCategory = "", varTrack = "", tRivalInizio = 0, tRivalUltimo = 0, rivalSplitCount = 0;
+    let recognition = null, isListening = false;
+    const updateOverlayLabel = (t) => document.getElementById('label-' + t).innerText = document.getElementById(t + '-select').value.toUpperCase();
+
+    function toggleVoiceRecognition() {
+      window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!window.SpeechRecognition) return alert("Riconoscimento vocale non supportato.");
+      
+      const statusLabel = document.getElementById('voice-status');
+      const voiceBar = document.getElementById('voice-bar-btn');
+      
+      if (!isListening) {
+        recognition = new SpeechRecognition();
+        recognition.interimResults = false;
+        recognition.continuous = true;
+        recognition.lang = 'it-IT';
+        
+        document.getElementById('nota-vocale-testo').value = ""; 
+        statusLabel.innerText = "ASCOLTO... PARLA ORA";
+        voiceBar.classList.add('listening-active');
+        isListening = true;
+        
+        recognition.addEventListener('result', e => {
+          const text = Array.from(e.results).map(result => result[0]).map(result => result.transcript).join('');
+          document.getElementById('nota-vocale-testo').value = text;
+          statusLabel.innerText = text.toUpperCase(); 
+        });
+        
+        recognition.start();
+      } else {
+        if (recognition) { recognition.stop(); }
+        voiceBar.classList.remove('listening-active');
+        isListening = false;
+        
+        setTimeout(() => {
+          let notaFinale = document.getElementById('nota-vocale-testo').value;
+          if (notaFinale && notaFinale.trim() !== "") {
+            statusLabel.innerText = "NOTA REGISTRATA CON SUCCESSO!";
+            voiceBar.style.border = "2px solid #00e676";
+          } else {
+            statusLabel.innerText = "PREMI E DETTA NOTE ASSETTO";
+            voiceBar.style.border = "2px dashed #ff3d00";
+          }
+        }, 300);
+      }
+    }
+
+    function confirmOverlayAll() {
+      let m = document.getElementById('mechanic-select').value, c = document.getElementById('category-select').value, t = document.getElementById('track-select').value, d = document.getElementById('driver-select').value, s = document.getElementById('session-select').value;
+      if(!m || !c || !t || !d || !s) return alert("Seleziona tutti i campi!");
+      
+      if (isListening && recognition) {
+        recognition.stop();
+        isListening = false;
+      }
+      
+      varMechanic = m; varCategory = c; varTrack = t;
+      document.getElementById('pilota').value = d; document.getElementById('sessione').value = s;
+      
+      document.getElementById('pilota').onchange(); document.getElementById('mechanic-overlay').style.display = 'none';
+    }
+
+    function resetRivalUI() {
+      tRivalInizio = 0; tRivalUltimo = 0; rivalSplitCount = 0; document.getElementById('rival-input').disabled = false;
+      document.getElementById('rival-input-bar').style.display = 'flex'; document.getElementById('rival-giant-grid').style.display = 'none';
+      document.getElementById('r-split-box').innerText = "--:--.---"; document.getElementById('r-lap-box').innerText = "00:00.000"; document.getElementById('r-split-label').innerText = "R-SPLIT";
+    }
+
+    function press(tipo) {
+      const ora = Date.now(); document.getElementById('beep').play();
+      let nVocaleText = document.getElementById('nota-vocale-testo').value; 
+
+      if (tipo === 'Home') {
+        tInizio = 0; tUltimo = 0; splitCount = 0; tRivalInizio = 0; tRivalUltimo = 0;
+        document.getElementById('sub-info').innerText = "PRONTO";
+        resetRivalUI();
+        document.getElementById('nota-vocale-testo').value = ""; 
+        document.getElementById('voice-status').innerText = "PREMI E DETTA NOTE ASSETTO";
+        document.getElementById('voice-bar-btn').style.border = "2px dashed #ff3d00";
+        document.getElementById('mechanic-overlay').style.display = 'flex';
+        return;
+      }
+      if (tipo === 'Stop') {
+        tInizio = 0; tUltimo = 0; splitCount = 0; tRivalInizio = 0; tRivalUltimo = 0;
+        document.getElementById('sub-info').innerText = "STOPPED"; document.getElementById('main-time').style.color = "#ffffff"; return;
+      }
+      if (tipo === 'Reset') {
+        if (!confirm("Azzerare memoria turno?")) return;
+        tInizio = 0; tUltimo = 0; splitCount = 0; localRecords = {};
+        document.getElementById('main-time').innerText = "00:00.000"; document.getElementById('main-time').style.color = "#ffffff"; document.getElementById('intertempo').innerHTML = "--:--.---"; document.getElementById('rival-input').value = ""; document.getElementById('best-val').innerText = "--:--.---"; document.getElementById('ideal-val').innerText = "--:--.---";
+        resetRivalUI();
+        google.script.run.withSuccessHandler(res => document.getElementById('sub-info').innerText = res.sub).resetSoloMemoriaTelefono();
+        return;
+      }
+      if (tipo === 'RivalStart') {
+        tRivalInizio = ora; tRivalUltimo = ora; rivalSplitCount = 0; document.getElementById('rival-input').disabled = true; document.getElementById('sub-info').innerText = "DUAL TRACKING";
+        document.getElementById('rival-input-bar').style.display = 'none'; document.getElementById('rival-giant-grid').style.display = 'grid';
+        return;
+      }
+      if (tipo === 'RivalSplit' || tipo === 'RivalLap') {
+        rivalSplitCount++; let dRival = ora - tRivalUltimo;
+        let nRival = document.getElementById('rival-input').value, nComp = nRival ? "RIVAL " + nRival : "RIVAL";
+        if(tipo === 'RivalSplit') {
+          tRivalUltimo = ora; document.getElementById('r-split-label').innerText = "R-SPLIT " + rivalSplitCount; document.getElementById('r-split-box').innerText = msToTime(dRival);
+          google.script.run.registraDatoDalTelefono('RivalSplit', rivalSplitCount, dRival, 0, nComp, document.getElementById('sessione').value, varCategory, varTrack, varMechanic, "");
+        } else {
+          let dGiroR = ora - tRivalInizio; tRivalInizio = ora; tRivalUltimo = ora;
+          document.getElementById('r-lap-box').innerText = msToTime(dGiroR); document.getElementById('r-split-label').innerText = "R-SPLIT " + rivalSplitCount; document.getElementById('r-split-box').innerText = msToTime(dRival);
+          google.script.run.registraDatoDalTelefono('RivalLap', rivalSplitCount, dGiroR, dRival, nComp, document.getElementById('sessione').value, varCategory, varTrack, varMechanic, "");
+          rivalSplitCount = 0;
+        }
+        return;
+      }
+      if (tInizio === 0) { tInizio = ora; tUltimo = ora; splitCount = 0; document.getElementById('sub-info').innerText = "TRACKING..."; return; }
+      let durata = 0, dSplit = 0, display = document.getElementById('main-time'), inter = document.getElementById('intertempo');
+      
+      if (tipo === 'Split') {
+        splitCount++; durata = ora - tUltimo; tUltimo = ora; display.innerText = msToTime(durata); inter.innerHTML = "SPLIT " + splitCount + "<br>" + msToTime(durata);
+        display.style.color = (durata < (localRecords['S' + splitCount] || 999999999)) ? "#00e676" : "#ff9100"; if (durata < (localRecords['S' + splitCount] || 999999999)) localRecords['S' + splitCount] = durata; 
+      } else if (tipo === 'Lap1') {
+        splitCount++; dSplit = ora - tUltimo; durata = ora - tInizio; tInizio = ora; tUltimo = ora; display.innerText = msToTime(durata); inter.innerHTML = "S" + splitCount + ": " + msToTime(dSplit) + "<br>LAP: " + msToTime(durata);
+        display.style.color = (durata < (localRecords['LAP'] || 999999999)) ? "#00e676" : "#ff9100"; if (durata < (localRecords['LAP'] || 999999999)) localRecords['LAP'] = durata;
+        google.script.run.withSuccessHandler(res => { document.getElementById('best-val').innerText = res.miglior; document.getElementById('ideal-val').innerText = res.ideal; }).registraDatoDalTelefono('Lap1', splitCount, durata, dSplit, document.getElementById('pilota').value, document.getElementById('sessione').value, varCategory, varTrack, varMechanic, nVocaleText);
+        splitCount = 0; return;
+      }
+      google.script.run.withSuccessHandler(res => { document.getElementById('best-val').innerText = res.miglior; document.getElementById('ideal-val').innerText = res.ideal; }).registraDatoDalTelefono(tipo, splitCount, durata, 0, document.getElementById('pilota').value, document.getElementById('sessione').value, varCategory, varTrack, varMechanic, nVocaleText);
+    }
+
+    function msToTime(s) {
+      let ms = s % 1000; s = (s - ms) / 1000; let secs = s % 60; let mins = (s - secs) / 60;
+      return (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs + '.' + (ms < 100 ? (ms < 10 ? '00' : '0') : '') + ms;
+    }
+
+    window.onload = () => {
+      document.getElementById('pilota').onchange = () => { google.script.run.withSuccessHandler(res => { document.getElementById('best-val').innerText = res.miglior; document.getElementById('ideal-val').innerText = res.ideal; localRecords = {}; }).cambioPilotaReset(document.getElementById('pilota').value); };
+      google.script.run.withSuccessHandler(data => {
+        document.getElementById('pilota').innerHTML = ""; document.getElementById('driver-select').innerHTML = '<option value="" disabled selected>PILOTA</option>';
+        data.piloti.forEach(n => { 
+          let o1 = document.createElement('option'); o1.value = n; o1.text = n.toUpperCase(); document.getElementById('pilota').appendChild(o1);
+          let o2 = document.createElement('option'); o2.value = n; o2.text = n.toUpperCase(); document.getElementById('driver-select').appendChild(o2);
+        });
+        document.getElementById('mechanic-select').innerHTML = '<option value="" disabled selected>MECCANICO</option>'; (data.meccanici.length ? data.meccanici : ["CAPO TEAM"]).forEach(m => document.getElementById('mechanic-select').add(new Option(m.toUpperCase(), m)));
+        document.getElementById('category-select').innerHTML = '<option value="" disabled selected>CATEGORIA</option>'; (data.categorie.length ? data.categorie : ["EASY"]).forEach(c => document.getElementById('category-select').add(new Option(c.toUpperCase(), c)));
+        document.getElementById('track-select').innerHTML = '<option value="" disabled selected>PISTA</option>'; (data.circuiti.length ? data.circuiti : ["FRANCIACORTA"]).forEach(p => document.getElementById('track-select').add(new Option(p.toUpperCase(), p)));
+        
+        document.getElementById('session-select').innerHTML = '<option value="" disabled selected>TIPO PROVA</option>';
+        let defaultSess = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "Q", "G1", "G2", "G3", "PF", "F"];
+        let sessToUse = (data.sessioni && data.sessioni.length > 0) ? data.sessioni : defaultSess;
+        sessToUse.forEach(s => { document.getElementById('session-select').add(new Option(s.toUpperCase(), s)); });
+
+        if(data.piloti.length > 0) document.getElementById('pilota').value = data.piloti[0];
+        document.getElementById('best-val').innerText = data.best; document.getElementById('ideal-val').innerText = data.ideal;
+      }).getAppData();
+    };
+  </script>
+</body>
+</html>
