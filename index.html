@@ -26,8 +26,13 @@
     .home-btn { height: 55px; background: #ff9800; font-size: 16px; color: #fff; }
     .stop-btn { height: 55px; background: #c62828; font-size: 18px; }
     .reset-btn { height: 55px; background: #444; font-size: 16px; }
-    #mechanic-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; background: black; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; box-sizing: border-box; }
-    .team-logo { max-width: 130px; border-radius: 50%; background: white; padding: 5px; margin-bottom: 10px; }
+    
+    /* MODIFICA INTERFACCIA LOGIN LICENZA */
+    #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 6000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+    .login-input { width: 100%; max-width: 320px; height: 50px; background: #222; border: 2px solid #ff9800; border-radius: 15px; color: #fff; text-align: center; font-size: 1.3rem; font-weight: bold; text-transform: uppercase; margin-bottom: 15px; }
+
+    #mechanic-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; background: black; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; box-sizing: border-box; display: none; }
+    .team-logo { max-width: 130px; max-height: 130px; border-radius: 15px; padding: 5px; margin-bottom: 10px; object-fit: contain; }
     #mechanic-overlay h2 { color: #ff9800; font-size: 1.8rem; margin: 0 0 10px 0; text-transform: uppercase; font-weight: 900; }
     .overlay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 380px; margin-bottom: 12px; }
     .square-box { height: 100px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem; border: none; cursor: pointer; position: relative; color: white; text-transform: uppercase; }
@@ -40,52 +45,41 @@
     .listening-active { background: #ff1744 !important; border: 2px solid #fff !important; animation: pulseBar 1.5s infinite; }
     .listening-active i, .listening-active #voice-status { color: #fff !important; }
     @keyframes pulseBar { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
-
-    /* SCHERMATA DI LOGON LICENZA ANTIRAPINA */
-    #license-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#050505; z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; }
-    .license-card { background:#111; border:2px solid #ff3d00; border-radius:20px; padding:30px 20px; width:100%; max-width:360px; text-align:center; box-shadow: 0 0 20px rgba(255, 61, 0, 0.2); }
-    .license-card h3 { color:#ff9800; margin:0 0 10px 0; text-transform:uppercase; font-weight:900; font-size:1.4rem; }
-    .license-card p { color:#aaa; font-size:12px; margin:0 0 20px 0; }
-    .license-input { width:100%; height:50px; background:#000; border:2px solid #444; border-radius:12px; color:#fff; text-align:center; font-size:16px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; margin-bottom:20px; box-sizing:border-box; }
-    .license-input:focus { border-color:#ff9800; outline:none; }
-    .license-btn { width:100%; height:50px; background:#ff9800; color:#000; font-weight:900; border:none; border-radius:12px; font-size:16px; cursor:pointer; text-transform:uppercase; }
-    #license-err { color:#ff1744; font-size:12px; font-weight:bold; margin-top:12px; min-height:16px; }
   </style>
 </head>
 <body>
-
-  <!-- SCHERMATA BLOCCO LICENZA SCUDERIA -->
-  <div id="license-screen" style="display: none;">
-    <div class="license-card">
-      <img src="https://i.postimg.cc/34nxWxHr/b4c7793b-5a42-423c-9991-b5bb88d8b1a2.jpg" style="max-width:80px; border-radius:50%; background:#fff; padding:3px; margin-bottom:10px;">
-      <h3>SBRACING CONTROL</h3>
-      <p>Inserisci il codice di sblocco della scuderia autorizzata per accedere alla telemetria box.</p>
-      <input type="text" id="license-field" class="license-input" placeholder="CODICE SCUDERIA">
-      <button class="license-btn" onclick="attivaLicenza()">SBLOCCA CENTRALINA</button>
-      <div id="license-err"></div>
-    </div>
-  </div>
 
   <select id="pilota" style="display:none;"></select> 
   <input type="hidden" id="sessione">
   <input type="hidden" id="nota-vocale-testo" value="">
 
-  <!-- OVERLAY SCHERMATA INIZIALE -->
+  <!-- 🔐 OVERLAY DI LOGIN LOGO PERSONALE SB RACING -->
+  <div id="login-overlay">
+    <h2 style="color: #fff; font-weight: 900; letter-spacing: 1px;">CRONOSTEU PRO</h2>
+    <img src="https://i.postimg.cc/34nxWxHr/b4c7793b-5a42-423c-9991-b5bb88d8b1a2.jpg" style="max-width: 160px; margin-bottom: 25px; border-radius: 15px;">
+    <input type="text" id="codice-scuderia-input" class="login-input" placeholder="CODICE SCUDERIA">
+    <button class="square-box bg-yellow" style="width: 100%; max-width: 320px; height: 55px;" onclick="autenticaLicenza()"><i class="fa-solid fa-unlock-keyhole"></i><span>SBLOCCA APPLICAZIONE</span></button>
+  </div>
+
+  <!-- 🛰️ OVERLAY SCERMATA INIZIALE STRUTTURA DINAMICA -->
   <div id="mechanic-overlay">
-    <h2>CRONOSTEU PRO</h2>
-    <img src="https://i.postimg.cc/34nxWxHr/b4c7793b-5a42-423c-9991-b5bb88d8b1a2.jpg" class="team-logo">
+    <h2 id="titolo-paddock">PADDOCK</h2>
+    <img id="logo-dinamico-team" src="" class="team-logo">
+    
     <div class="overlay-grid">
-      <div class="square-box bg-blue"><i class="fa-solid fa-wrench"></i><span id="label-mechanic">MECCANICO</span><select id="mechanic-select" onchange="updateOverlayLabel('mechanic')"><option value="" disabled selected>CARICAMENTO...</option></select></div>
-      <div class="square-box bg-orange"><i class="fa-solid fa-tags"></i><span id="label-category">CATEGORIA</span><select id="category-select" onchange="updateOverlayLabel('category')"><option value="" disabled selected>CARICAMENTO...</option></select></div>
-      <div class="square-box bg-green"><i class="fa-solid fa-map-marked-alt"></i><span id="label-track">PISTA</span><select id="track-select" onchange="updateOverlayLabel('track')"><option value="" disabled selected>CARICAMENTO...</option></select></div>
-      <div class="square-box bg-purple"><i class="fa-solid fa-user-astronaut"></i><span id="label-driver">PILOTA</span><select id="driver-select" onchange="updateOverlayLabel('driver')"><option value="" disabled selected>CARICAMENTO...</option></select></div>
-      <div class="square-box bg-red" style="grid-column: span 2; height: 85px;"><i class="fa-solid fa-flag-checkered"></i><span id="label-session">TIPO PROVA</span><select id="session-select" onchange="updateOverlayLabel('session')"><option value="" disabled selected>CARICAMENTO...</option></select></div>
+      <div class="square-box bg-blue"><i class="fa-solid fa-wrench"></i><span id="label-mechanic">MECCANICO</span><select id="mechanic-select" onchange="updateOverlayLabel('mechanic')"><option value="" disabled selected>SCEGLI...</option></select></div>
+      <div class="square-box bg-orange"><i class="fa-solid fa-tags"></i><span id="label-category">CATEGORIA</span><select id="category-select" onchange="updateOverlayLabel('category')"><option value="" disabled selected>SCEGLI...</option></select></div>
+      <div class="square-box bg-green"><i class="fa-solid fa-map-marked-alt"></i><span id="label-track">PISTA</span><select id="track-select" onchange="updateOverlayLabel('track')"><option value="" disabled selected>SCEGLI...</option></select></div>
+      <div class="square-box bg-purple"><i class="fa-solid fa-user-astronaut"></i><span id="label-driver">PILOTA</span><select id="driver-select" onchange="updateOverlayLabel('driver')"><option value="" disabled selected>SCEGLI...</option></select></div>
+      <div class="square-box bg-red" style="grid-column: span 2; height: 85px;"><i class="fa-solid fa-flag-checkered"></i><span id="label-session">TIPO PROVA</span><select id="session-select" onchange="updateOverlayLabel('session')"><option value="" disabled selected>SCEGLI...</option></select></div>
     </div>
+    
     <div class="wide-voice-bar" id="voice-bar-btn" onclick="toggleVoiceRecognition();">
       <i class="fa-solid fa-microphone" id="mic-icon"></i>
       <span id="voice-status">PREMI E DETTA NOTE ASSETTO</span>
     </div>
-    <button class="square-box bg-yellow" style="width: 100%; max-width: 380px; height: 60px;" onclick="confirmOverlayAll()"><i class="fa-solid fa-play"></i><span>PADDOCK</span></button>
+    
+    <button class="square-box bg-yellow" style="width: 100%; max-width: 380px; height: 60px;" onclick="confirmOverlayAll()"><i class="fa-solid fa-play"></i><span>ENTRA IN PISTA</span></button>
   </div>
 
   <!-- INTERFACCIA CRONOMETRO -->
@@ -112,54 +106,69 @@
   <audio id="beep" src="https://actions.google.com/sounds/v1/states/notification.ogg"></audio>
 
   <script>
-    // URL PONTE RADIO CONVERTITO SU PRODUZIONE EXEC
-    const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbw2POXGLhrmEgZ0Q8nBW6MC56pudFZNvGsGDwZjmPZovnNkIo0tyCWbcC4V8yCcokBO/exec";
-
+    // URL DI DISTRIBUZIONE DELLA CENTRALINA MASTER GOOGLE APPS SCRIPT V69.5
+    const MASTER_URL = "https://script.google.com/macros/s/AKfycbw2POXGLhrmEgZ0Q8nBW6MC56pudFZNvGsGDwZjmPZovnNkIo0tyCWbcC4V8yCcokBO/exec";
+    
     let tInizio = 0, tUltimo = 0, splitCount = 0, localRecords = {}, varMechanic = "", varCategory = "", varTrack = "", tRivalInizio = 0, tRivalUltimo = 0, rivalSplitCount = 0;
-    let recognition = null, isListening = false;
+    let recognition = null, isListening = false, codiceScuderiaAttivo = "";
+    
     const updateOverlayLabel = (t) => document.getElementById('label-' + t).innerText = document.getElementById(t + '-select').value.toUpperCase();
 
-    function callServer(payload, successCallback) {
-      payload.codiceScuderia = localStorage.getItem('sbracing_team_code') || "";
-      fetch(GOOGLE_API_URL, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.error === "LICENZA_INVALIDA") {
-          localStorage.removeItem('sbracing_team_code');
-          location.reload();
-          return;
-        }
-        if (successCallback) successCallback(data);
-      })
-      .catch(err => console.error("Errore ponte radio:", err));
-    }
-
-    function attivaLicenza() {
-      let code = document.getElementById('license-field').value.toUpperCase().trim();
-      if(!code) return alert("Inserisci un codice valido!");
+    // 🔐 FUNZIONE DI AUTENTICAZIONE E CARICAMENTO IMMAGINI DINAMICHE
+    function autenticaLicenza() {
+      let cod = document.getElementById('codice-scuderia-input').value.toUpperCase().trim();
+      if(!cod) return alert("Inserisci un codice scuderia valido!");
       
-      document.getElementById('license-err').innerText = "VERIFICA CENTRALINA IN CORSO...";
+      codiceScuderiaAttivo = cod;
+      document.getElementById('sub-info').innerText = "CONNESSIFICAZIONE IN CORSO...";
       
-      fetch(GOOGLE_API_URL, {
+      fetch(MASTER_URL, {
         method: "POST",
-        body: JSON.stringify({ action: "getAppData", codiceScuderia: code })
+        body: JSON.stringify({ action: "getAppData", codiceScuderia: codiceScuderiaAttivo })
       })
       .then(res => res.json())
       .then(data => {
-        if(data.error === "LICENZA_INVALIDA") {
-          document.getElementById('license-err').innerText = "❌ CODICE ERRATO O SCADUTO!";
-        } else {
-          localStorage.setItem('sbracing_team_code', code);
-          document.getElementById('license-screen').style.display = 'none';
-          inizializzaApplicazioneConDati(data);
+        if(data.error) {
+          alert("ERRORE: Codice Scuderia errato o scaduto!");
+          document.getElementById('sub-info').innerText = "PRONTO";
+          return;
         }
+        
+        // Imposta il logo del team in base alla colonna I o usa SB Racing di default
+        let logoImmagine = data.logoTeam && data.logoTeam !== "" ? data.logoTeam : "https://i.postimg.cc/34nxWxHr/b4c7793b-5a42-423c-9991-b5bb88d8b1a2.jpg";
+        document.getElementById('logo-dinamico-team').src = logoImmagine;
+        document.getElementById('titolo-paddock').innerText = codiceScuderiaAttivo;
+
+        // Popolamento dinamico delle tendine
+        document.getElementById('pilota').innerHTML = ""; 
+        document.getElementById('driver-select').innerHTML = '<option value="" disabled selected>PILOTA</option>';
+        data.piloti.forEach(n => { 
+          let o1 = document.createElement('option'); o1.value = n; o1.text = n.toUpperCase(); document.getElementById('pilota').appendChild(o1);
+          let o2 = document.createElement('option'); o2.value = n; o2.text = n.toUpperCase(); document.getElementById('driver-select').appendChild(o2);
+        });
+        
+        document.getElementById('mechanic-select').innerHTML = '<option value="" disabled selected>MECCANICO</option>'; 
+        (data.meccanici.length ? data.meccanici : ["CAPO TEAM"]).forEach(m => document.getElementById('mechanic-select').add(new Option(m.toUpperCase(), m)));
+        
+        document.getElementById('category-select').innerHTML = '<option value="" disabled selected>CATEGORIA</option>'; 
+        (data.categorie.length ? data.categorie : ["KART"]).forEach(c => document.getElementById('category-select').add(new Option(c.toUpperCase(), c)));
+        
+        document.getElementById('track-select').innerHTML = '<option value="" disabled selected>PISTA</option>'; 
+        (data.circuiti.length ? data.circuiti : ["PISTA"]).forEach(p => document.getElementById('track-select').add(new Option(p.toUpperCase(), p)));
+        
+        document.getElementById('session-select').innerHTML = '<option value="" disabled selected>TIPO PROVA</option>';
+        data.sessioni.forEach(s => { document.getElementById('session-select').add(new Option(s.toUpperCase(), s)); });
+
+        if(data.piloti.length > 0) document.getElementById('pilota').value = data.piloti[0];
+        document.getElementById('best-val').innerText = data.best; 
+        document.getElementById('ideal-val').innerText = data.ideal;
+        
+        // Sblocca la vista ed entra nel paddock remoto
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('mechanic-overlay').style.display = 'flex';
+        document.getElementById('sub-info').innerText = "REGISTRATO";
       })
-      .catch(err => {
-        document.getElementById('license-err').innerText = "Errore di connessione server.";
-      });
+      .catch(err => alert("Errore di rete: " + err.message));
     }
 
     function toggleVoiceRecognition() {
@@ -167,12 +176,18 @@
       if (!window.SpeechRecognition) return alert("Riconoscimento vocale non supportato.");
       const statusLabel = document.getElementById('voice-status');
       const voiceBar = document.getElementById('voice-bar-btn');
+      
       if (!isListening) {
-        recognition = new SpeechRecognition(); recognition.interimResults = false; recognition.continuous = true; recognition.lang = 'it-IT';
-        document.getElementById('nota-vocale-testo').value = ""; statusLabel.innerText = "ASCOLTO... PARLA ORA"; voiceBar.classList.add('listening-active'); isListening = true;
+        recognition = new SpeechRecognition();
+        recognition.interimResults = false; recognition.continuous = true; recognition.lang = 'it-IT';
+        document.getElementById('nota-vocale-testo').value = ""; 
+        statusLabel.innerText = "ASCOLTO... PARLA ORA";
+        voiceBar.classList.add('listening-active'); isListening = true;
+        
         recognition.addEventListener('result', e => {
           const text = Array.from(e.results).map(result => result[0]).map(result => result.transcript).join('');
-          document.getElementById('nota-vocale-testo').value = text; statusLabel.innerText = text.toUpperCase(); 
+          document.getElementById('nota-vocale-testo').value = text;
+          statusLabel.innerText = text.toUpperCase(); 
         });
         recognition.start();
       } else {
@@ -180,8 +195,13 @@
         voiceBar.classList.remove('listening-active'); isListening = false;
         setTimeout(() => {
           let notaFinale = document.getElementById('nota-vocale-testo').value;
-          if (notaFinale && notaFinale.trim() !== "") { statusLabel.innerText = "NOTA REGISTRATA CON SUCCESSO!"; voiceBar.style.border = "2px solid #00e676"; }
-          else { statusLabel.innerText = "PREMI E DETTA NOTE ASSETTO"; voiceBar.style.border = "2px dashed #ff3d00"; }
+          if (notaFinale && notaFinale.trim() !== "") {
+            statusLabel.innerText = "NOTA REGISTRATA CON SUCCESSO!";
+            voiceBar.style.border = "2px solid #00e676";
+          } else {
+            statusLabel.innerText = "PREMI E DETTA NOTE ASSETTO";
+            voiceBar.style.border = "2px dashed #ff3d00";
+          }
         }, 300);
       }
     }
@@ -207,81 +227,70 @@
 
       if (tipo === 'Home') {
         tInizio = 0; tUltimo = 0; splitCount = 0; tRivalInizio = 0; tRivalUltimo = 0;
-        document.getElementById('sub-info').innerText = "PRONTO"; resetRivalUI();
-        document.getElementById('nota-vocale-testo').value = ""; document.getElementById('voice-status').innerText = "PREMI E DETTA NOTE ASSETTO";
-        document.getElementById('voice-bar-btn').style.border = "2px dashed #ff3d00"; document.getElementById('mechanic-overlay').style.display = 'flex';
+        document.getElementById('sub-info').innerText = "PRONTO";
+        resetRivalUI();
+        document.getElementById('nota-vocale-testo').value = ""; 
+        document.getElementById('voice-status').innerText = "PREMI E DETTA NOTE ASSETTO";
+        document.getElementById('voice-bar-btn').style.border = "2px dashed #ff3d00";
+        document.getElementById('mechanic-overlay').style.display = 'flex';
         return;
       }
-      if (tipo === 'Stop') { tInizio = 0; tUltimo = 0; splitCount = 0; tRivalInizio = 0; tRivalUltimo = 0; document.getElementById('sub-info').innerText = "STOPPED"; document.getElementById('main-time').style.color = "#ffffff"; return; }
+      if (tipo === 'Stop') {
+        tInizio = 0; tUltimo = 0; splitCount = 0; tRivalInizio = 0; tRivalUltimo = 0;
+        document.getElementById('sub-info').innerText = "STOPPED"; document.getElementById('main-time').style.color = "#ffffff"; return;
+      }
       if (tipo === 'Reset') {
         if (!confirm("Azzerare memoria turno?")) return;
         tInizio = 0; tUltimo = 0; splitCount = 0; localRecords = {};
-        document.getElementById('main-time').innerText = "00:00.000"; document.getElementById('main-time').style.color = "#ffffff"; document.getElementById('intertempo').innerHTML = "--:--.---"; document.getElementById('rival-input').value = ""; document.getElementById('best-val').innerText = "--:--.---"; document.getElementById('ideal-val').innerText = "--:--.---"; resetRivalUI();
-        callServer({ action: "resetMemoria" }, res => document.getElementById('sub-info').innerText = res.sub);
+        document.getElementById('main-time').innerText = "00:00.000"; document.getElementById('main-time').style.color = "#ffffff"; document.getElementById('intertempo').innerHTML = "--:--.---"; document.getElementById('rival-input').value = ""; document.getElementById('best-val').innerText = "--:--.---"; document.getElementById('ideal-val').innerText = "--:--.---";
+        resetRivalUI();
+        
+        fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "resetMemoria", codiceScuderia: codiceScuderiaAttivo }) })
+        .then(res => res.json()).then(res => document.getElementById('sub-info').innerText = res.sub);
         return;
       }
       if (tipo === 'RivalStart') {
         tRivalInizio = ora; tRivalUltimo = ora; rivalSplitCount = 0; document.getElementById('rival-input').disabled = true; document.getElementById('sub-info').innerText = "DUAL TRACKING";
-        document.getElementById('rival-input-bar').style.display = 'none'; document.getElementById('rival-giant-grid').style.display = 'grid'; return;
+        document.getElementById('rival-input-bar').style.display = 'none'; document.getElementById('rival-giant-grid').style.display = 'grid';
+        return;
       }
+      
+      // LOGICA DI INVIO TEMPI IN RETE MEDIANTE FETCH DIRECT ROUTING
       if (tipo === 'RivalSplit' || tipo === 'RivalLap') {
-        rivalSplitCount++; let dRival = ora - tRivalUltimo; let nRival = document.getElementById('rival-input').value, nComp = nRival ? "RIVAL " + nRival : "RIVAL";
+        rivalSplitCount++; let dRival = ora - tRivalUltimo;
+        let nRival = document.getElementById('rival-input').value, nComp = nRival ? "RIVAL " + nRival : "RIVAL";
         if(tipo === 'RivalSplit') {
           tRivalUltimo = ora; document.getElementById('r-split-label').innerText = "R-SPLIT " + rivalSplitCount; document.getElementById('r-split-box').innerText = msToTime(dRival);
-          callServer({ action: "registraDato", tipo: 'RivalSplit', colSplit: rivalSplitCount, durataMs: dRival, durataSplitMs: 0, pilota: nComp, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: "" });
+          fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'RivalSplit', colSplit: rivalSplitCount, durataMs: dRival, durataSplitMs: 0, pilota: nComp, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: "", codiceScuderia: codiceScuderiaAttivo })});
         } else {
           let dGiroR = ora - tRivalInizio; tRivalInizio = ora; tRivalUltimo = ora;
           document.getElementById('r-lap-box').innerText = msToTime(dGiroR); document.getElementById('r-split-label').innerText = "R-SPLIT " + rivalSplitCount; document.getElementById('r-split-box').innerText = msToTime(dRival);
-          callServer({ action: "registraDato", tipo: 'RivalLap', colSplit: rivalSplitCount, durataMs: dGiroR, strokeSplitMs: dRival, pilota: nComp, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: "" });
+          fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'RivalLap', colSplit: rivalSplitCount, durataMs: dGiroR, durataSplitMs: dRival, pilota: nComp, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: "", codiceScuderia: codiceScuderiaAttivo })});
           rivalSplitCount = 0;
         }
         return;
       }
+      
       if (tInizio === 0) { tInizio = ora; tUltimo = ora; splitCount = 0; document.getElementById('sub-info').innerText = "TRACKING..."; return; }
       let durata = 0, dSplit = 0, display = document.getElementById('main-time'), inter = document.getElementById('intertempo');
       
       if (tipo === 'Split') {
         splitCount++; durata = ora - tUltimo; tUltimo = ora; display.innerText = msToTime(durata); inter.innerHTML = "SPLIT " + splitCount + "<br>" + msToTime(durata);
         display.style.color = (durata < (localRecords['S' + splitCount] || 999999999)) ? "#00e676" : "#ff9100"; if (durata < (localRecords['S' + splitCount] || 999999999)) localRecords['S' + splitCount] = durata; 
+        fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'Split', colSplit: splitCount, durataMs: durata, durataSplitMs: 0, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText, codiceScuderia: codiceScuderiaAttivo })});
       } else if (tipo === 'Lap1') {
         splitCount++; dSplit = ora - tUltimo; durata = ora - tInizio; tInizio = ora; tUltimo = ora; display.innerText = msToTime(durata); inter.innerHTML = "S" + splitCount + ": " + msToTime(dSplit) + "<br>LAP: " + msToTime(durata);
         display.style.color = (durata < (localRecords['LAP'] || 999999999)) ? "#00e676" : "#ff9100"; if (durata < (localRecords['LAP'] || 999999999)) localRecords['LAP'] = durata;
-        callServer({ action: "registraDato", tipo: 'Lap1', colSplit: splitCount, durataMs: durata, durataSplitMs: dSplit, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText }, res => { document.getElementById('best-val').innerText = res.miglior; document.getElementById('ideal-val').innerText = res.ideal; });
-        splitCount = 0; return;
+        fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'Lap1', colSplit: splitCount, durataMs: durata, durataSplitMs: dSplit, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText, codiceScuderia: codiceScuderiaAttivo })});
+        splitCount = 0; 
+        return;
       }
-      callServer({ action: "registraDato", tipo: tipo, colSplit: splitCount, durataMs: durata, durataSplitMs: 0, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText }, res => { document.getElementById('best-val').innerText = res.miglior; document.getElementById('ideal-val').innerText = res.ideal; });
     }
 
     function msToTime(s) {
       let ms = s % 1000; s = (s - ms) / 1000; let secs = s % 60; let mins = (s - secs) / 60;
       return (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs + '.' + (ms < 100 ? (ms < 10 ? '00' : '0') : '') + ms;
     }
-
-    function inizializzaApplicazioneConDati(data) {
-      document.getElementById('pilota').innerHTML = ""; document.getElementById('driver-select').innerHTML = '<option value="" disabled selected>PILOTA</option>';
-      data.piloti.forEach(n => { 
-        let o1 = document.createElement('option'); o1.value = n; o1.text = n.toUpperCase(); document.getElementById('pilota').appendChild(o1);
-        let o2 = document.createElement('option'); o2.value = n; o2.text = n.toUpperCase(); document.getElementById('driver-select').appendChild(o2);
-      });
-      document.getElementById('mechanic-select').innerHTML = '<option value="" disabled selected>MECCANICO</option>'; (data.meccanici.length ? data.meccanici : ["CAPO TEAM"]).forEach(m => document.getElementById('mechanic-select').add(new Option(m.toUpperCase(), m)));
-      document.getElementById('category-select').innerHTML = '<option value="" disabled selected>CATEGORIA</option>'; (data.categorie.length ? data.categorie : ["EASY"]).forEach(c => document.getElementById('category-select').add(new Option(c.toUpperCase(), c)));
-      document.getElementById('track-select').innerHTML = '<option value="" disabled selected>PISTA</option>'; (data.circuiti.length ? data.circuiti : ["FRANCIACORTA"]).forEach(p => document.getElementById('track-select').add(new Option(p.toUpperCase(), p)));
-      document.getElementById('session-select').innerHTML = '<option value="" disabled selected>TIPO PROVA</option>';
-      let defaultSess = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "Q", "G1", "G2", "G3", "PF", "F"];
-      let sessToUse = (data.sessioni && data.sessioni.length > 0) ? data.sessioni : defaultSess;
-      sessToUse.forEach(s => { document.getElementById('session-select').add(new Option(s.toUpperCase(), s)); });
-      if(data.piloti.length > 0) document.getElementById('pilota').value = data.piloti[0];
-      document.getElementById('best-val').innerText = data.best; document.getElementById('ideal-val').innerText = data.ideal;
-    }
-
-    window.onload = () => {
-      let savedCode = localStorage.getItem('sbracing_team_code');
-      if (!savedCode) {
-        document.getElementById('license-screen').style.display = 'flex';
-      } else {
-        callServer({ action: "getAppData" }, data => { inizializzaApplicazioneConDati(data); });
-      }
-    };
   </script>
 </body>
 </html>
