@@ -239,10 +239,13 @@
         tInizio = 0; tUltimo = 0; splitCount = 0; tRivalInizio = 0; tRivalUltimo = 0;
         document.getElementById('sub-info').innerText = "STOPPED"; document.getElementById('main-time').style.color = "#ffffff"; return;
       }
-      if (tipo === 'Reset') {
-        if (!confirm("Azzerare memoria turno?")) return;
+     if (tipo === 'Reset') {
+        if (!confirm("Azzerare cronometro sul telefono?")) return;
         tInizio = 0; tUltimo = 0; splitCount = 0; localRecords = {};
-        document.getElementById('main-time').innerText = "00:00.000"; document.getElementById('main-time').style.color = "#ffffff"; document.getElementById('intertempo').innerHTML = "--:--.---"; document.getElementById('rival-input').value = ""; document.getElementById('best-val').innerText = "--:--.---"; document.getElementById('ideal-val').innerText = "--:--.---";
+        document.getElementById('main-time').innerText = "00:00.000"; 
+        document.getElementById('main-time').style.color = "#ffffff"; 
+        document.getElementById('intertempo').innerHTML = "--:--.---"; 
+        document.getElementById('rival-input').value = ""; 
         resetRivalUI();
         
         fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "resetMemoria", codiceScuderia: codiceScuderiaAttivo }) })
