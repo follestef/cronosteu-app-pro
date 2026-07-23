@@ -122,9 +122,11 @@
       codiceScuderiaAttivo = cod;
       document.getElementById('sub-info').innerText = "CONNESSIFICAZIONE IN CORSO...";
       
+      let pSel = document.getElementById('driver-select').value || "";
+      
       fetch(MASTER_URL, {
         method: "POST",
-        body: JSON.stringify({ action: "getAppData", codiceScuderia: codiceScuderiaAttivo })
+        body: JSON.stringify({ action: "getAppData", codiceScuderia: codiceScuderiaAttivo, pilotaSelezionato: pSel })
       })
       .then(res => res.json())
       .then(data => {
@@ -134,12 +136,10 @@
           return;
         }
         
-        // Imposta il logo del team in base alla colonna I o usa SB Racing di default
         let logoImmagine = data.logoTeam && data.logoTeam !== "" ? data.logoTeam : "https://i.postimg.cc/34nxWxHr/b4c7793b-5a42-423c-9991-b5bb88d8b1a2.jpg";
         document.getElementById('logo-dinamico-team').src = logoImmagine;
         document.getElementById('titolo-paddock').innerText = codiceScuderiaAttivo;
 
-        // Popolamento dinamico delle tendine
         document.getElementById('pilota').innerHTML = ""; 
         document.getElementById('driver-select').innerHTML = '<option value="" disabled selected>PILOTA</option>';
         data.piloti.forEach(n => { 
@@ -163,7 +163,6 @@
         document.getElementById('best-val').innerText = data.best; 
         document.getElementById('ideal-val').innerText = data.ideal;
         
-        // Sblocca la vista ed entra nel paddock remoto
         document.getElementById('login-overlay').style.display = 'none';
         document.getElementById('mechanic-overlay').style.display = 'flex';
         document.getElementById('sub-info').innerText = "REGISTRATO";
