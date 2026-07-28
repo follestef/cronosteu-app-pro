@@ -27,7 +27,6 @@
     .stop-btn { height: 55px; background: #c62828; font-size: 18px; }
     .reset-btn { height: 55px; background: #444; font-size: 16px; }
     
-    /* MODIFICA INTERFACCIA LOGIN LICENZA */
     #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 6000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
     .login-input { width: 100%; max-width: 320px; height: 50px; background: #222; border: 2px solid #ff9800; border-radius: 15px; color: #fff; text-align: center; font-size: 1.3rem; font-weight: bold; text-transform: uppercase; margin-bottom: 15px; }
 
@@ -61,7 +60,7 @@
     <button class="square-box bg-yellow" style="width: 100%; max-width: 320px; height: 55px;" onclick="autenticaLicenza()"><i class="fa-solid fa-unlock-keyhole"></i><span>SBLOCCA APPLICAZIONE</span></button>
   </div>
 
-  <!-- 🛰️ OVERLAY SCERMATA INIZIALE STRUTTURA DINAMICA -->
+  <!-- 🛰️ OVERLAY SCHERMATA INIZIALE -->
   <div id="mechanic-overlay">
     <h2 id="titolo-paddock">PADDOCK</h2>
     <img id="logo-dinamico-team" src="" class="team-logo">
@@ -106,7 +105,6 @@
   <audio id="beep" src="https://actions.google.com/sounds/v1/states/notification.ogg"></audio>
 
   <script>
-    // URL DI DISTRIBUZIONE DELLA CENTRALINA MASTER GOOGLE APPS SCRIPT V69.5
     const MASTER_URL = "https://script.google.com/macros/s/AKfycbw2POXGLhrmEgZ0Q8nBW6MC56pudFZNvGsGDwZjmPZovnNkIo0tyCWbcC4V8yCcokBO/exec";
     
     let tInizio = 0, tUltimo = 0, splitCount = 0, localRecords = {}, varMechanic = "", varCategory = "", varTrack = "", tRivalInizio = 0, tRivalUltimo = 0, rivalSplitCount = 0;
@@ -114,7 +112,7 @@
     
     const updateOverlayLabel = (t) => document.getElementById('label-' + t).innerText = document.getElementById(t + '-select').value.toUpperCase();
 
-    // 🔐 FUNZIONE DI AUTENTICAZIONE E CARICAMENTO IMMAGINI DINAMICHE
+    // 🔐 1. AUTENTICAZIONE E CARICAMENTO MENU
     function autenticaLicenza() {
       let cod = document.getElementById('codice-scuderia-input').value.toUpperCase().trim();
       if(!cod) return alert("Inserisci un codice scuderia valido!");
@@ -122,11 +120,9 @@
       codiceScuderiaAttivo = cod;
       document.getElementById('sub-info').innerText = "CONNESSIFICAZIONE IN CORSO...";
       
-      let pSel = document.getElementById('driver-select').value || "";
-      
       fetch(MASTER_URL, {
         method: "POST",
-        body: JSON.stringify({ action: "getAppData", codiceScuderia: codiceScuderiaAttivo, pilotaSelezionato: pSel })
+        body: JSON.stringify({ action: "getAppData", codiceScuderia: codiceScuderiaAttivo })
       })
       .then(res => res.json())
       .then(data => {
@@ -159,15 +155,34 @@
         document.getElementById('session-select').innerHTML = '<option value="" disabled selected>TIPO PROVA</option>';
         data.sessioni.forEach(s => { document.getElementById('session-select').add(new Option(s.toUpperCase(), s)); });
 
-        if(data.piloti.length > 0) document.getElementById('pilota').value = data.piloti[0];
-        document.getElementById('best-val').innerText = data.best; 
-        document.getElementById('ideal-val').innerText = data.ideal;
-        
         document.getElementById('login-overlay').style.display = 'none';
         document.getElementById('mechanic-overlay').style.display = 'flex';
         document.getElementById('sub-info').innerText = "REGISTRATO";
       })
       .catch(err => alert("Errore di rete: " + err.message));
+    }
+
+    // 🏁 2. CONFERMA PADDOCK (CARICA BEST E IDEAL DEL PILOTA SELEZIONATO)
+    function confirmOverlayAll() {
+      let m = document.getElementById('mechanic-select').value, c = document.getElementById('category-select').value, t = document.getElementById('track-select').value, d = document.getElementById('driver-select').value, s = document.getElementById('session-select').value;
+      if(!m || !c || !t || !d || !s) return alert("Seleziona tutti i campi!");
+      if (isListening && recognition) { recognition.stop(); isListening = false; }
+      
+      varMechanic = m; varCategory = c; varTrack = t;
+      document.getElementById('pilota').value = d; document.getElementById('sessione').value = s;
+      
+      // Chiede alla centralina i record specifici di QUESTO pilota
+      fetch(MASTER_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "getAppData", codiceScuderia: codiceScuderiaAttivo, pilotaSelezionato: d })
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('best-val').innerText = data.best || "--:--.---"; 
+        document.getElementById('ideal-val').innerText = data.ideal || "--:--.---";
+      });
+
+      document.getElementById('mechanic-overlay').style.display = 'none';
     }
 
     function toggleVoiceRecognition() {
@@ -205,15 +220,6 @@
       }
     }
 
-    function confirmOverlayAll() {
-      let m = document.getElementById('mechanic-select').value, c = document.getElementById('category-select').value, t = document.getElementById('track-select').value, d = document.getElementById('driver-select').value, s = document.getElementById('session-select').value;
-      if(!m || !c || !t || !d || !s) return alert("Seleziona tutti i campi!");
-      if (isListening && recognition) { recognition.stop(); isListening = false; }
-      varMechanic = m; varCategory = c; varTrack = t;
-      document.getElementById('pilota').value = d; document.getElementById('sessione').value = s;
-      document.getElementById('mechanic-overlay').style.display = 'none';
-    }
-
     function resetRivalUI() {
       tRivalInizio = 0; tRivalUltimo = 0; rivalSplitCount = 0; document.getElementById('rival-input').disabled = false;
       document.getElementById('rival-input-bar').style.display = 'flex'; document.getElementById('rival-giant-grid').style.display = 'none';
@@ -238,7 +244,7 @@
         tInizio = 0; tUltimo = 0; splitCount = 0; tRivalInizio = 0; tRivalUltimo = 0;
         document.getElementById('sub-info').innerText = "STOPPED"; document.getElementById('main-time').style.color = "#ffffff"; return;
       }
-     if (tipo === 'Reset') {
+      if (tipo === 'Reset') {
         if (!confirm("Azzerare cronometro sul telefono?")) return;
         tInizio = 0; tUltimo = 0; splitCount = 0; localRecords = {};
         document.getElementById('main-time').innerText = "00:00.000"; 
@@ -257,7 +263,6 @@
         return;
       }
       
-      // LOGICA DI INVIO TEMPI IN RETE MEDIANTE FETCH DIRECT ROUTING
       if (tipo === 'RivalSplit' || tipo === 'RivalLap') {
         rivalSplitCount++; let dRival = ora - tRivalUltimo;
         let nRival = document.getElementById('rival-input').value, nComp = nRival ? "RIVAL " + nRival : "RIVAL";
@@ -283,7 +288,15 @@
       } else if (tipo === 'Lap1') {
         splitCount++; dSplit = ora - tUltimo; durata = ora - tInizio; tInizio = ora; tUltimo = ora; display.innerText = msToTime(durata); inter.innerHTML = "S" + splitCount + ": " + msToTime(dSplit) + "<br>LAP: " + msToTime(durata);
         display.style.color = (durata < (localRecords['LAP'] || 999999999)) ? "#00e676" : "#ff9100"; if (durata < (localRecords['LAP'] || 999999999)) localRecords['LAP'] = durata;
-        fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'Lap1', colSplit: splitCount, durataMs: durata, durataSplitMs: dSplit, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText, codiceScuderia: codiceScuderiaAttivo })});
+        
+        // 🔄 3. RICEVE ED AGGIORNA ALL'ISTANTE BEST E IDEAL SULLO SCHERMO
+        fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'Lap1', colSplit: splitCount, durataMs: durata, durataSplitMs: dSplit, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText, codiceScuderia: codiceScuderiaAttivo })})
+        .then(res => res.json())
+        .then(data => {
+          if (data.miglior) document.getElementById('best-val').innerText = data.miglior;
+          if (data.ideal) document.getElementById('ideal-val').innerText = data.ideal;
+        });
+
         splitCount = 0; 
         return;
       }
