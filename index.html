@@ -110,9 +110,11 @@
     let tInizio = 0, tUltimo = 0, splitCount = 0, localRecords = {}, varMechanic = "", varCategory = "", varTrack = "", tRivalInizio = 0, tRivalUltimo = 0, rivalSplitCount = 0;
     let recognition = null, isListening = false, codiceScuderiaAttivo = "";
     
+    // Variabile globale per bloccare e non perdere mai il numero del Rival inserito
+    let rivalNumeroAttivo = "";
+    
     const updateOverlayLabel = (t) => document.getElementById('label-' + t).innerText = document.getElementById(t + '-select').value.toUpperCase();
 
-    // 🔐 1. AUTENTICAZIONE E CARICAMENTO MENU
     function autenticaLicenza() {
       let cod = document.getElementById('codice-scuderia-input').value.toUpperCase().trim();
       if(!cod) return alert("Inserisci un codice scuderia valido!");
@@ -162,7 +164,6 @@
       .catch(err => alert("Errore di rete: " + err.message));
     }
 
-    // 🏁 2. CONFERMA PADDOCK (CARICA BEST E IDEAL DEL PILOTA SELEZIONATO)
     function confirmOverlayAll() {
       let m = document.getElementById('mechanic-select').value, c = document.getElementById('category-select').value, t = document.getElementById('track-select').value, d = document.getElementById('driver-select').value, s = document.getElementById('session-select').value;
       if(!m || !c || !t || !d || !s) return alert("Seleziona tutti i campi!");
@@ -171,7 +172,6 @@
       varMechanic = m; varCategory = c; varTrack = t;
       document.getElementById('pilota').value = d; document.getElementById('sessione').value = s;
       
-      // Chiede alla centralina i record specifici di QUESTO pilota
       fetch(MASTER_URL, {
         method: "POST",
         body: JSON.stringify({ action: "getAppData", codiceScuderia: codiceScuderiaAttivo, pilotaSelezionato: d })
@@ -221,7 +221,9 @@
     }
 
     function resetRivalUI() {
-      tRivalInizio = 0; tRivalUltimo = 0; rivalSplitCount = 0; document.getElementById('rival-input').disabled = false;
+      tRivalInizio = 0; tRivalUltimo = 0; rivalSplitCount = 0; rivalNumeroAttivo = "";
+      document.getElementById('rival-input').value = "";
+      document.getElementById('rival-input').disabled = false;
       document.getElementById('rival-input-bar').style.display = 'flex'; document.getElementById('rival-giant-grid').style.display = 'none';
       document.getElementById('r-split-box').innerText = "--:--.---"; document.getElementById('r-lap-box').innerText = "00:00.000"; document.getElementById('r-split-label').innerText = "R-SPLIT";
     }
@@ -250,29 +252,78 @@
         document.getElementById('main-time').innerText = "00:00.000"; 
         document.getElementById('main-time').style.color = "#ffffff"; 
         document.getElementById('intertempo').innerHTML = "--:--.---"; 
-        document.getElementById('rival-input').value = ""; 
         resetRivalUI();
         
         fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "resetMemoria", codiceScuderia: codiceScuderiaAttivo }) })
         .then(res => res.json()).then(res => document.getElementById('sub-info').innerText = res.sub);
         return;
       }
+      
+      // 🏎️ REGISTRAZIONE E BLOCCO NUMERO RIVAL
       if (tipo === 'RivalStart') {
-        tRivalInizio = ora; tRivalUltimo = ora; rivalSplitCount = 0; document.getElementById('rival-input').disabled = true; document.getElementById('sub-info').innerText = "DUAL TRACKING";
-        document.getElementById('rival-input-bar').style.display = 'none'; document.getElementById('rival-giant-grid').style.display = 'grid';
+        let valInp = document.getElementById('rival-input').value.trim();
+        rivalNumeroAttivo = valInp ? valInp : ""; // Salva in variabile globale
+        
+        tRivalInizio = ora; tRivalUltimo = ora; rivalSplitCount = 0; 
+        document.getElementById('rival-input').disabled = true; 
+        document.getElementById('sub-info').innerText = "DUAL TRACKING";
+        document.getElementById('rival-input-bar').style.display = 'none'; 
+        document.getElementById('rival-giant-grid').style.display = 'grid';
         return;
       }
       
+      // 🛰️ INVIO TEMPI RIVAL CON N° PILOTA GARANTITO
       if (tipo === 'RivalSplit' || tipo === 'RivalLap') {
         rivalSplitCount++; let dRival = ora - tRivalUltimo;
-        let nRival = document.getElementById('rival-input').value, nComp = nRival ? "RIVAL " + nRival : "RIVAL";
+        
+        // Se c'è un numero scrive "RIVAL 44", altrimenti scrive "RIVAL"
+        let nomeRivalCompleto = rivalNumeroAttivo !== "" ? "RIVAL " + rivalNumeroAttivo : "RIVAL";
+        
         if(tipo === 'RivalSplit') {
-          tRivalUltimo = ora; document.getElementById('r-split-label').innerText = "R-SPLIT " + rivalSplitCount; document.getElementById('r-split-box').innerText = msToTime(dRival);
-          fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'RivalSplit', colSplit: rivalSplitCount, durataMs: dRival, durataSplitMs: 0, pilota: nComp, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: "", codiceScuderia: codiceScuderiaAttivo })});
+          tRivalUltimo = ora; 
+          document.getElementById('r-split-label').innerText = "R-SPLIT " + rivalSplitCount; 
+          document.getElementById('r-split-box').innerText = msToTime(dRival);
+          
+          fetch(MASTER_URL, { 
+            method: "POST", 
+            body: JSON.stringify({ 
+              action: "registraDato", 
+              tipo: 'RivalSplit', 
+              colSplit: rivalSplitCount, 
+              durataMs: dRival, 
+              durataSplitMs: 0, 
+              pilota: nomeRivalCompleto, 
+              sessione: document.getElementById('sessione').value, 
+              categoria: varCategory, 
+              circuito: varTrack, 
+              meccanico: varMechanic, 
+              notaVocale: "", 
+              codiceScuderia: codiceScuderiaAttivo 
+            })
+          });
         } else {
           let dGiroR = ora - tRivalInizio; tRivalInizio = ora; tRivalUltimo = ora;
-          document.getElementById('r-lap-box').innerText = msToTime(dGiroR); document.getElementById('r-split-label').innerText = "R-SPLIT " + rivalSplitCount; document.getElementById('r-split-box').innerText = msToTime(dRival);
-          fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'RivalLap', colSplit: rivalSplitCount, durataMs: dGiroR, durataSplitMs: dRival, pilota: nComp, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: "", codiceScuderia: codiceScuderiaAttivo })});
+          document.getElementById('r-lap-box').innerText = msToTime(dGiroR); 
+          document.getElementById('r-split-label').innerText = "R-SPLIT " + rivalSplitCount; 
+          document.getElementById('r-split-box').innerText = msToTime(dRival);
+          
+          fetch(MASTER_URL, { 
+            method: "POST", 
+            body: JSON.stringify({ 
+              action: "registraDato", 
+              tipo: 'RivalLap', 
+              colSplit: rivalSplitCount, 
+              durataMs: dGiroR, 
+              durataSplitMs: dRival, 
+              pilota: nomeRivalCompleto, 
+              sessione: document.getElementById('sessione').value, 
+              categoria: varCategory, 
+              circuito: varTrack, 
+              meccanico: varMechanic, 
+              notaVocale: "", 
+              codiceScuderia: codiceScuderiaAttivo 
+            })
+          });
           rivalSplitCount = 0;
         }
         return;
@@ -289,7 +340,6 @@
         splitCount++; dSplit = ora - tUltimo; durata = ora - tInizio; tInizio = ora; tUltimo = ora; display.innerText = msToTime(durata); inter.innerHTML = "S" + splitCount + ": " + msToTime(dSplit) + "<br>LAP: " + msToTime(durata);
         display.style.color = (durata < (localRecords['LAP'] || 999999999)) ? "#00e676" : "#ff9100"; if (durata < (localRecords['LAP'] || 999999999)) localRecords['LAP'] = durata;
         
-        // 🔄 3. RICEVE ED AGGIORNA ALL'ISTANTE BEST E IDEAL SULLO SCHERMO
         fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'Lap1', colSplit: splitCount, durataMs: durata, durataSplitMs: dSplit, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText, codiceScuderia: codiceScuderiaAttivo })})
         .then(res => res.json())
         .then(data => {
