@@ -110,7 +110,7 @@
     let tInizio = 0, tUltimo = 0, splitCount = 0, localRecords = {}, varMechanic = "", varCategory = "", varTrack = "", tRivalInizio = 0, tRivalUltimo = 0, rivalSplitCount = 0;
     let recognition = null, isListening = false, codiceScuderiaAttivo = "";
     
-    // Variabile globale per bloccare e non perdere mai il numero del Rival inserito
+    // Variabile per salvare il numero del Rival senza perderlo
     let rivalNumeroAttivo = "";
     
     const updateOverlayLabel = (t) => document.getElementById('label-' + t).innerText = document.getElementById(t + '-select').value.toUpperCase();
@@ -259,10 +259,9 @@
         return;
       }
       
-      // 🏎️ REGISTRAZIONE E BLOCCO NUMERO RIVAL
       if (tipo === 'RivalStart') {
         let valInp = document.getElementById('rival-input').value.trim();
-        rivalNumeroAttivo = valInp ? valInp : ""; // Salva in variabile globale
+        rivalNumeroAttivo = valInp ? valInp : ""; 
         
         tRivalInizio = ora; tRivalUltimo = ora; rivalSplitCount = 0; 
         document.getElementById('rival-input').disabled = true; 
@@ -272,11 +271,8 @@
         return;
       }
       
-      // 🛰️ INVIO TEMPI RIVAL CON N° PILOTA GARANTITO
       if (tipo === 'RivalSplit' || tipo === 'RivalLap') {
         rivalSplitCount++; let dRival = ora - tRivalUltimo;
-        
-        // Se c'è un numero scrive "RIVAL 44", altrimenti scrive "RIVAL"
         let nomeRivalCompleto = rivalNumeroAttivo !== "" ? "RIVAL " + rivalNumeroAttivo : "RIVAL";
         
         if(tipo === 'RivalSplit') {
@@ -307,11 +303,12 @@
           document.getElementById('r-split-label').innerText = "R-SPLIT " + rivalSplitCount; 
           document.getElementById('r-split-box').innerText = msToTime(dRival);
           
+          // Invia il tempo come Lap1 per scriverlo direttamente in Colonna J!
           fetch(MASTER_URL, { 
             method: "POST", 
             body: JSON.stringify({ 
               action: "registraDato", 
-              tipo: 'RivalLap', 
+              tipo: 'Lap1', 
               colSplit: rivalSplitCount, 
               durataMs: dGiroR, 
               durataSplitMs: dRival, 
