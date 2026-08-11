@@ -109,13 +109,30 @@
     
     let tInizio = 0, tUltimo = 0, splitCount = 0, localRecords = {}, varMechanic = "", varCategory = "", varTrack = "", tRivalInizio = 0, tRivalUltimo = 0, rivalSplitCount = 0;
     let recognition = null, isListening = false, codiceScuderiaAttivo = "";
-    
-    // Variabile per salvare il numero del Rival senza perderlo
     let rivalNumeroAttivo = "";
     
-    const updateOverlayLabel = (t) => document.getElementById('label-' + t).innerText = document.getElementById(t + '-select').value.toUpperCase();
+    const updateOverlayLabel = (t) => {
+      let val = document.getElementById(t + '-select').value;
+      if(val) {
+        document.getElementById('label-' + t).innerText = val.toUpperCase();
+        localStorage.setItem('saved_' + t, val); // Salva la scelta nel telefono
+      }
+    };
 
-    function autenticaLicenza() {
+    // Controlla all'apertura se c'è un login salvato nelle ultime 24h
+    window.addEventListener('DOMContentLoaded', () => {
+      let savedCod = localStorage.getItem('saved_codiceScuderia');
+      let savedTime = localStorage.getItem('saved_loginTime');
+      let now = Date.now();
+
+      // Se il login è stato fatto meno di 24 ore fa (86400000 ms)
+      if (savedCod && savedTime && (now - savedTime < 86400000)) {
+        document.getElementById('codice-scuderia-input').value = savedCod;
+        autenticaLicenza(true); // Login automatico
+      }
+    });
+
+    function autenticaLicenza(autoLogin = false) {
       let cod = document.getElementById('codice-scuderia-input').value.toUpperCase().trim();
       if(!cod) return alert("Inserisci un codice scuderia valido!");
       
@@ -129,11 +146,16 @@
       .then(res => res.json())
       .then(data => {
         if(data.error) {
-          alert("ERRORE: Codice Scuderia errato o scaduto!");
+          if(!autoLogin) alert("ERRORE: Codice Scuderia errato o scaduto!");
+          localStorage.removeItem('saved_codiceScuderia');
           document.getElementById('sub-info').innerText = "PRONTO";
           return;
         }
         
+        // Salva credenziali e orario nel telefono
+        localStorage.setItem('saved_codiceScuderia', codiceScuderiaAttivo);
+        localStorage.setItem('saved_loginTime', Date.now());
+
         let logoImmagine = data.logoTeam && data.logoTeam !== "" ? data.logoTeam : "https://i.postimg.cc/34nxWxHr/b4c7793b-5a42-423c-9991-b5bb88d8b1a2.jpg";
         document.getElementById('logo-dinamico-team').src = logoImmagine;
         document.getElementById('titolo-paddock').innerText = codiceScuderiaAttivo;
@@ -157,11 +179,28 @@
         document.getElementById('session-select').innerHTML = '<option value="" disabled selected>TIPO PROVA</option>';
         data.sessioni.forEach(s => { document.getElementById('session-select').add(new Option(s.toUpperCase(), s)); });
 
+        // Ripristina automaticamente le ultime opzioni scelte durante il giorno!
+        ['mechanic', 'category', 'track', 'driver', 'session'].forEach(k => {
+          let savedVal = localStorage.getItem('saved_' + k);
+          let selectElem = document.getElementById(k + '-select');
+          if(savedVal && selectElem) {
+            for(let i=0; i<selectElem.options.length; i++) {
+              if(selectElem.options[i].value === savedVal) {
+                selectElem.selectedIndex = i;
+                document.getElementById('label-' + k).innerText = savedVal.toUpperCase();
+                break;
+              }
+            }
+          }
+        });
+
         document.getElementById('login-overlay').style.display = 'none';
         document.getElementById('mechanic-overlay').style.display = 'flex';
         document.getElementById('sub-info').innerText = "REGISTRATO";
       })
-      .catch(err => alert("Errore di rete: " + err.message));
+      .catch(err => {
+        if(!autoLogin) alert("Errore di rete: " + err.message);
+      });
     }
 
     function confirmOverlayAll() {
@@ -303,7 +342,6 @@
           document.getElementById('r-split-label').innerText = "R-SPLIT " + rivalSplitCount; 
           document.getElementById('r-split-box').innerText = msToTime(dRival);
           
-          // Invia il tempo come Lap1 per scriverlo direttamente in Colonna J!
           fetch(MASTER_URL, { 
             method: "POST", 
             body: JSON.stringify({ 
