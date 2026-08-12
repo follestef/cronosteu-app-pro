@@ -44,6 +44,8 @@
     .listening-active { background: #ff1744 !important; border: 2px solid #fff !important; animation: pulseBar 1.5s infinite; }
     .listening-active i, .listening-active #voice-status { color: #fff !important; }
     @keyframes pulseBar { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
+    
+    .btn-logout { position: absolute; top: 15px; right: 15px; background: #333; color: #ff5252; border: 1px solid #ff5252; border-radius: 10px; padding: 6px 12px; font-size: 11px; font-weight: bold; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -52,7 +54,7 @@
   <input type="hidden" id="sessione">
   <input type="hidden" id="nota-vocale-testo" value="">
 
-  <!-- 🔐 OVERLAY DI LOGIN LOGO PERSONALE SB RACING -->
+  <!-- 🔐 OVERLAY DI LOGIN -->
   <div id="login-overlay">
     <h2 style="color: #fff; font-weight: 900; letter-spacing: 1px;">CRONOSTEU PRO</h2>
     <img src="https://i.postimg.cc/34nxWxHr/b4c7793b-5a42-423c-9991-b5bb88d8b1a2.jpg" style="max-width: 160px; margin-bottom: 25px; border-radius: 15px;">
@@ -60,8 +62,9 @@
     <button class="square-box bg-yellow" style="width: 100%; max-width: 320px; height: 55px;" onclick="autenticaLicenza()"><i class="fa-solid fa-unlock-keyhole"></i><span>SBLOCCA APPLICAZIONE</span></button>
   </div>
 
-  <!-- 🛰️ OVERLAY SCHERMATA INIZIALE -->
+  <!-- 🛰️ OVERLAY PADDOCK (SCHERMATA PRINCIPALE) -->
   <div id="mechanic-overlay">
+    <button class="btn-logout" onclick="disconnettiScuderia()"><i class="fa-solid fa-power-off"></i> RESET LICENZA</button>
     <h2 id="titolo-paddock">PADDOCK</h2>
     <img id="logo-dinamico-team" src="" class="team-logo">
     
@@ -115,22 +118,34 @@
       let val = document.getElementById(t + '-select').value;
       if(val) {
         document.getElementById('label-' + t).innerText = val.toUpperCase();
-        localStorage.setItem('saved_' + t, val); // Salva la scelta nel telefono
+        localStorage.setItem('saved_' + t, val);
       }
     };
 
-    // Controlla all'apertura se c'è un login salvato nelle ultime 24h
+    // Auto-caricamento immediato all'apertura dell'app
     window.addEventListener('DOMContentLoaded', () => {
       let savedCod = localStorage.getItem('saved_codiceScuderia');
       let savedTime = localStorage.getItem('saved_loginTime');
       let now = Date.now();
 
-      // Se il login è stato fatto meno di 24 ore fa (86400000 ms)
+      // Se la licenza è stata salvata nelle ultime 24 ore (86400000 ms)
       if (savedCod && savedTime && (now - savedTime < 86400000)) {
         document.getElementById('codice-scuderia-input').value = savedCod;
-        autenticaLicenza(true); // Login automatico
+        autenticaLicenza(true);
+      } else {
+        // Altrimenti mostra la schermata di login per inserire la licenza
+        document.getElementById('login-overlay').style.display = 'flex';
       }
     });
+
+    function disconnettiScuderia() {
+      if(confirm("Vuoi azzerare il codice scuderia sul telefono?")) {
+        localStorage.clear();
+        document.getElementById('mechanic-overlay').style.display = 'none';
+        document.getElementById('login-overlay').style.display = 'flex';
+        document.getElementById('codice-scuderia-input').value = "";
+      }
+    }
 
     function autenticaLicenza(autoLogin = false) {
       let cod = document.getElementById('codice-scuderia-input').value.toUpperCase().trim();
@@ -148,11 +163,12 @@
         if(data.error) {
           if(!autoLogin) alert("ERRORE: Codice Scuderia errato o scaduto!");
           localStorage.removeItem('saved_codiceScuderia');
+          document.getElementById('login-overlay').style.display = 'flex';
           document.getElementById('sub-info').innerText = "PRONTO";
           return;
         }
         
-        // Salva credenziali e orario nel telefono
+        // Salva orario e licenza nel browser
         localStorage.setItem('saved_codiceScuderia', codiceScuderiaAttivo);
         localStorage.setItem('saved_loginTime', Date.now());
 
@@ -179,7 +195,7 @@
         document.getElementById('session-select').innerHTML = '<option value="" disabled selected>TIPO PROVA</option>';
         data.sessioni.forEach(s => { document.getElementById('session-select').add(new Option(s.toUpperCase(), s)); });
 
-        // Ripristina automaticamente le ultime opzioni scelte durante il giorno!
+        // Carica istantaneamente le ultime scelte fatte nella giornata
         ['mechanic', 'category', 'track', 'driver', 'session'].forEach(k => {
           let savedVal = localStorage.getItem('saved_' + k);
           let selectElem = document.getElementById(k + '-select');
@@ -194,12 +210,14 @@
           }
         });
 
+        // NASCONDE IL LOGIN E MOSTRA SUBITO IL PADDOCK
         document.getElementById('login-overlay').style.display = 'none';
         document.getElementById('mechanic-overlay').style.display = 'flex';
         document.getElementById('sub-info').innerText = "REGISTRATO";
       })
       .catch(err => {
         if(!autoLogin) alert("Errore di rete: " + err.message);
+        document.getElementById('login-overlay').style.display = 'flex';
       });
     }
 
