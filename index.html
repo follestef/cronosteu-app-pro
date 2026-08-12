@@ -62,7 +62,7 @@
     <button class="square-box bg-yellow" style="width: 100%; max-width: 320px; height: 55px;" onclick="autenticaLicenza()"><i class="fa-solid fa-unlock-keyhole"></i><span>SBLOCCA APPLICAZIONE</span></button>
   </div>
 
-  <!-- 🛰️ OVERLAY PADDOCK (SCHERMATA PRINCIPALE) -->
+  <!-- 🛰️ OVERLAY PADDOCK -->
   <div id="mechanic-overlay">
     <button class="btn-logout" onclick="disconnettiScuderia()"><i class="fa-solid fa-power-off"></i> RESET LICENZA</button>
     <h2 id="titolo-paddock">PADDOCK</h2>
@@ -122,18 +122,15 @@
       }
     };
 
-    // Auto-caricamento immediato all'apertura dell'app
     window.addEventListener('DOMContentLoaded', () => {
       let savedCod = localStorage.getItem('saved_codiceScuderia');
       let savedTime = localStorage.getItem('saved_loginTime');
       let now = Date.now();
 
-      // Se la licenza è stata salvata nelle ultime 24 ore (86400000 ms)
       if (savedCod && savedTime && (now - savedTime < 86400000)) {
         document.getElementById('codice-scuderia-input').value = savedCod;
         autenticaLicenza(true);
       } else {
-        // Altrimenti mostra la schermata di login per inserire la licenza
         document.getElementById('login-overlay').style.display = 'flex';
       }
     });
@@ -168,7 +165,6 @@
           return;
         }
         
-        // Salva orario e licenza nel browser
         localStorage.setItem('saved_codiceScuderia', codiceScuderiaAttivo);
         localStorage.setItem('saved_loginTime', Date.now());
 
@@ -195,7 +191,6 @@
         document.getElementById('session-select').innerHTML = '<option value="" disabled selected>TIPO PROVA</option>';
         data.sessioni.forEach(s => { document.getElementById('session-select').add(new Option(s.toUpperCase(), s)); });
 
-        // Carica istantaneamente le ultime scelte fatte nella giornata
         ['mechanic', 'category', 'track', 'driver', 'session'].forEach(k => {
           let savedVal = localStorage.getItem('saved_' + k);
           let selectElem = document.getElementById(k + '-select');
@@ -210,7 +205,6 @@
           }
         });
 
-        // NASCONDE IL LOGIN E MOSTRA SUBITO IL PADDOCK
         document.getElementById('login-overlay').style.display = 'none';
         document.getElementById('mechanic-overlay').style.display = 'flex';
         document.getElementById('sub-info').innerText = "REGISTRATO";
@@ -385,13 +379,33 @@
       if (tInizio === 0) { tInizio = ora; tUltimo = ora; splitCount = 0; document.getElementById('sub-info').innerText = "TRACKING..."; return; }
       let durata = 0, dSplit = 0, display = document.getElementById('main-time'), inter = document.getElementById('intertempo');
       
+      // 🏎️ GESTIONE COLORI INTELLIGENTI (VERDE / BIANCO / ARANCIONE)
       if (tipo === 'Split') {
         splitCount++; durata = ora - tUltimo; tUltimo = ora; display.innerText = msToTime(durata); inter.innerHTML = "SPLIT " + splitCount + "<br>" + msToTime(durata);
-        display.style.color = (durata < (localRecords['S' + splitCount] || 999999999)) ? "#00e676" : "#ff9100"; if (durata < (localRecords['S' + splitCount] || 999999999)) localRecords['S' + splitCount] = durata; 
+        
+        let bestSp = localRecords['S' + splitCount] || 999999999;
+        if (durata <= bestSp) {
+          display.style.color = "#00e676"; // 🟢 VERDE: Nuovo record di settore!
+          localRecords['S' + splitCount] = durata;
+        } else if (durata <= (bestSp + 100)) {
+          display.style.color = "#ffffff"; // ⚪ BIANCO: Ottimo tempo! (entro 0.100s dal Best)
+        } else {
+          display.style.color = "#ff9100"; // 🟠 ARANCIONE: Oltre 1 decimo dal Best
+        }
+
         fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'Split', colSplit: splitCount, durataMs: durata, durataSplitMs: 0, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText, codiceScuderia: codiceScuderiaAttivo })});
       } else if (tipo === 'Lap1') {
         splitCount++; dSplit = ora - tUltimo; durata = ora - tInizio; tInizio = ora; tUltimo = ora; display.innerText = msToTime(durata); inter.innerHTML = "S" + splitCount + ": " + msToTime(dSplit) + "<br>LAP: " + msToTime(durata);
-        display.style.color = (durata < (localRecords['LAP'] || 999999999)) ? "#00e676" : "#ff9100"; if (durata < (localRecords['LAP'] || 999999999)) localRecords['LAP'] = durata;
+        
+        let bestLap = localRecords['LAP'] || 999999999;
+        if (durata <= bestLap) {
+          display.style.color = "#00e676"; // 🟢 VERDE: Nuovo Best Lap!
+          localRecords['LAP'] = durata;
+        } else if (durata <= (bestLap + 100)) {
+          display.style.color = "#ffffff"; // ⚪ BIANCO: Giro ottimo! (entro 0.100s dal Best Lap)
+        } else {
+          display.style.color = "#ff9100"; // 🟠 ARANCIONE: Oltre 1 decimo dal Best Lap
+        }
         
         fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'Lap1', colSplit: splitCount, durataMs: durata, durataSplitMs: dSplit, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText, codiceScuderia: codiceScuderiaAttivo })})
         .then(res => res.json())
