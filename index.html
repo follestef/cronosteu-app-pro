@@ -110,7 +110,7 @@
   <script>
     const MASTER_URL = "https://script.google.com/macros/s/AKfycbw2POXGLhrmEgZ0Q8nBW6MC56pudFZNvGsGDwZjmPZovnNkIo0tyCWbcC4V8yCcokBO/exec";
     
-    let tInizio = 0, tUltimo = 0, splitCount = 0, localRecords = {}, varMechanic = "", varCategory = "", varTrack = "", tRivalInizio = 0, tRivalUltimo = 0, rivalSplitCount = 0;
+    let tInizio = 0, tUltimo = 0, splitCount = 0, lapCount = 0, localRecords = {}, varMechanic = "", varCategory = "", varTrack = "", tRivalInizio = 0, tRivalUltimo = 0, rivalSplitCount = 0, rivalLapCount = 0;
     let recognition = null, isListening = false, codiceScuderiaAttivo = "";
     let rivalNumeroAttivo = "";
     
@@ -272,7 +272,7 @@
     }
 
     function resetRivalUI() {
-      tRivalInizio = 0; tRivalUltimo = 0; rivalSplitCount = 0; rivalNumeroAttivo = "";
+      tRivalInizio = 0; tRivalUltimo = 0; rivalSplitCount = 0; rivalLapCount = 0; rivalNumeroAttivo = "";
       document.getElementById('rival-input').value = "";
       document.getElementById('rival-input').disabled = false;
       document.getElementById('rival-input-bar').style.display = 'flex'; document.getElementById('rival-giant-grid').style.display = 'none';
@@ -284,7 +284,7 @@
       let nVocaleText = document.getElementById('nota-vocale-testo').value; 
 
       if (tipo === 'Home') {
-        tInizio = 0; tUltimo = 0; splitCount = 0; tRivalInizio = 0; tRivalUltimo = 0;
+        tInizio = 0; tUltimo = 0; splitCount = 0; lapCount = 0; tRivalInizio = 0; tRivalUltimo = 0; rivalLapCount = 0;
         document.getElementById('sub-info').innerText = "PRONTO";
         resetRivalUI();
         document.getElementById('nota-vocale-testo').value = ""; 
@@ -299,7 +299,7 @@
       }
       if (tipo === 'Reset') {
         if (!confirm("Azzerare cronometro sul telefono?")) return;
-        tInizio = 0; tUltimo = 0; splitCount = 0; localRecords = {};
+        tInizio = 0; tUltimo = 0; splitCount = 0; lapCount = 0; localRecords = {};
         document.getElementById('main-time').innerText = "00:00.000"; 
         document.getElementById('main-time').style.color = "#ffffff"; 
         document.getElementById('intertempo').innerHTML = "--:--.---"; 
@@ -314,7 +314,7 @@
         let valInp = document.getElementById('rival-input').value.trim();
         rivalNumeroAttivo = valInp ? valInp : ""; 
         
-        tRivalInizio = ora; tRivalUltimo = ora; rivalSplitCount = 0; 
+        tRivalInizio = ora; tRivalUltimo = ora; rivalSplitCount = 0; rivalLapCount = 0;
         document.getElementById('rival-input').disabled = true; 
         document.getElementById('sub-info').innerText = "DUAL TRACKING";
         document.getElementById('rival-input-bar').style.display = 'none'; 
@@ -349,9 +349,10 @@
             })
           });
         } else {
+          rivalLapCount++;
           let dGiroR = ora - tRivalInizio; tRivalInizio = ora; tRivalUltimo = ora;
           document.getElementById('r-lap-box').innerText = msToTime(dGiroR); 
-          document.getElementById('r-split-label').innerText = "R-SPLIT " + rivalSplitCount; 
+          document.getElementById('r-split-label').innerText = "R-GIRO " + rivalLapCount; 
           document.getElementById('r-split-box').innerText = msToTime(dRival);
           
           fetch(MASTER_URL, { 
@@ -376,35 +377,37 @@
         return;
       }
       
-      if (tInizio === 0) { tInizio = ora; tUltimo = ora; splitCount = 0; document.getElementById('sub-info').innerText = "TRACKING..."; return; }
+      if (tInizio === 0) { tInizio = ora; tUltimo = ora; splitCount = 0; lapCount = 0; document.getElementById('sub-info').innerText = "TRACKING..."; return; }
       let durata = 0, dSplit = 0, display = document.getElementById('main-time'), inter = document.getElementById('intertempo');
       
-      // 🏎️ GESTIONE COLORI INTELLIGENTI (VERDE / BIANCO / ARANCIONE)
       if (tipo === 'Split') {
         splitCount++; durata = ora - tUltimo; tUltimo = ora; display.innerText = msToTime(durata); inter.innerHTML = "SPLIT " + splitCount + "<br>" + msToTime(durata);
         
         let bestSp = localRecords['S' + splitCount] || 999999999;
         if (durata <= bestSp) {
-          display.style.color = "#00e676"; // 🟢 VERDE: Nuovo record di settore!
+          display.style.color = "#00e676"; 
           localRecords['S' + splitCount] = durata;
         } else if (durata <= (bestSp + 100)) {
-          display.style.color = "#ffffff"; // ⚪ BIANCO: Ottimo tempo! (entro 0.100s dal Best)
+          display.style.color = "#ffffff"; 
         } else {
-          display.style.color = "#ff9100"; // 🟠 ARANCIONE: Oltre 1 decimo dal Best
+          display.style.color = "#ff9100"; 
         }
 
         fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'Split', colSplit: splitCount, durataMs: durata, durataSplitMs: 0, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText, codiceScuderia: codiceScuderiaAttivo })});
       } else if (tipo === 'Lap1') {
-        splitCount++; dSplit = ora - tUltimo; durata = ora - tInizio; tInizio = ora; tUltimo = ora; display.innerText = msToTime(durata); inter.innerHTML = "S" + splitCount + ": " + msToTime(dSplit) + "<br>LAP: " + msToTime(durata);
+        splitCount++; lapCount++; dSplit = ora - tUltimo; durata = ora - tInizio; tInizio = ora; tUltimo = ora; display.innerText = msToTime(durata); 
+        
+        // MOSTRA CHIARAMENTE IL NUMERO DEL GIRO E IL TEMPO
+        inter.innerHTML = "GIRO " + lapCount + "<br>LAP: " + msToTime(durata);
         
         let bestLap = localRecords['LAP'] || 999999999;
         if (durata <= bestLap) {
-          display.style.color = "#00e676"; // 🟢 VERDE: Nuovo Best Lap!
+          display.style.color = "#00e676"; 
           localRecords['LAP'] = durata;
         } else if (durata <= (bestLap + 100)) {
-          display.style.color = "#ffffff"; // ⚪ BIANCO: Giro ottimo! (entro 0.100s dal Best Lap)
+          display.style.color = "#ffffff"; 
         } else {
-          display.style.color = "#ff9100"; // 🟠 ARANCIONE: Oltre 1 decimo dal Best Lap
+          display.style.color = "#ff9100"; 
         }
         
         fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'Lap1', colSplit: splitCount, durataMs: durata, durataSplitMs: dSplit, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText, codiceScuderia: codiceScuderiaAttivo })})
