@@ -12,6 +12,11 @@
     #sub-info { font-size: 14px; color: #ffeb3b; text-transform: uppercase; font-weight: bold; margin-bottom: 4px; }
     #main-time { font-size: 68px; font-weight: 900; font-family: 'monospace'; margin: 0; line-height: 1; color: #fff; }
     #intertempo { font-size: 20px; color: #00e5ff; font-family: 'monospace'; height: 50px; margin-top: 5px; font-weight: bold; line-height: 1.2; }
+    
+    /* BARRETTE PERFORMANCE SETTORI (MAX 8 SPLIT) */
+    .sector-bars { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-bottom: 8px; width: 100%; }
+    .sec-bar { height: 12px; border-radius: 6px; background: #1c1c1c; border: 1px solid #333; transition: background 0.2s ease, box-shadow 0.2s ease; }
+
     .stats-row { display: grid; grid-template-columns: 1fr 1fr; background: #111; border: 1px solid #333; border-radius: 10px; padding: 8px; margin-bottom: 10px; }
     .stat-box { text-align: center; } .stat-label { font-size: 10px; color: #aaa; text-transform: uppercase; } .stat-val { font-size: 18px; font-weight: bold; font-family: monospace; }
     .action-grid, .rival-action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px; }
@@ -92,6 +97,19 @@
     <div id="main-time">00:00.000</div>
     <div id="intertempo">--:--.---</div>
   </div>
+
+  <!-- 🚦 8 BARRETTE SETTORI -->
+  <div class="sector-bars" id="sector-bars">
+    <div class="sec-bar" id="sec-1"></div>
+    <div class="sec-bar" id="sec-2"></div>
+    <div class="sec-bar" id="sec-3"></div>
+    <div class="sec-bar" id="sec-4"></div>
+    <div class="sec-bar" id="sec-5"></div>
+    <div class="sec-bar" id="sec-6"></div>
+    <div class="sec-bar" id="sec-7"></div>
+    <div class="sec-bar" id="sec-8"></div>
+  </div>
+
   <div class="stats-row">
     <div class="stat-box"><div class="stat-label">Best Lap</div><div id="best-val" style="color:#ffeb3b">--:--.---</div></div>
     <div class="stat-box"><div class="stat-label">Ideal Lap</div><div id="ideal-val" style="color:#00e5ff">--:--.---</div></div>
@@ -117,6 +135,30 @@
     let tInizio = 0, tUltimo = 0, splitCount = 0, lapCount = 0, localRecords = {}, varMechanic = "", varCategory = "", varTrack = "", tRivalInizio = 0, tRivalUltimo = 0, rivalSplitCount = 0;
     let recognition = null, isListening = false, codiceScuderiaAttivo = "";
     let rivalNumeroAttivo = "";
+    let resetBarsTimer = null;
+
+    function setSectorBarColor(num, colorHex) {
+      if (num >= 1 && num <= 8) {
+        let bar = document.getElementById('sec-' + num);
+        if (bar) {
+          bar.style.background = colorHex;
+          bar.style.borderColor = colorHex;
+          bar.style.boxShadow = '0 0 8px ' + colorHex;
+        }
+      }
+    }
+
+    function resetSectorBars() {
+      if (resetBarsTimer) { clearTimeout(resetBarsTimer); resetBarsTimer = null; }
+      for (let i = 1; i <= 8; i++) {
+        let bar = document.getElementById('sec-' + i);
+        if (bar) {
+          bar.style.background = '#1c1c1c';
+          bar.style.borderColor = '#333';
+          bar.style.boxShadow = 'none';
+        }
+      }
+    }
     
     const updateOverlayLabel = (t) => {
       let val = document.getElementById(t + '-select').value;
@@ -291,6 +333,7 @@
         tInizio = 0; tUltimo = 0; splitCount = 0; lapCount = 0; tRivalInizio = 0; tRivalUltimo = 0;
         document.getElementById('lap-counter').innerText = "GIRO 0";
         document.getElementById('sub-info').innerText = "PRONTO";
+        resetSectorBars();
         resetRivalUI();
         document.getElementById('nota-vocale-testo').value = ""; 
         document.getElementById('voice-status').innerText = "PREMI E DETTA NOTE ASSETTO";
@@ -301,7 +344,9 @@
       if (tipo === 'Stop') {
         tInizio = 0; tUltimo = 0; splitCount = 0; lapCount = 0; tRivalInizio = 0; tRivalUltimo = 0;
         document.getElementById('lap-counter').innerText = "GIRO 0";
-        document.getElementById('sub-info').innerText = "STOPPED"; document.getElementById('main-time').style.color = "#ffffff"; return;
+        document.getElementById('sub-info').innerText = "STOPPED"; document.getElementById('main-time').style.color = "#ffffff";
+        resetSectorBars();
+        return;
       }
       if (tipo === 'Reset') {
         if (!confirm("Azzerare cronometro sul telefono?")) return;
@@ -310,6 +355,7 @@
         document.getElementById('main-time').innerText = "00:00.000"; 
         document.getElementById('main-time').style.color = "#ffffff"; 
         document.getElementById('intertempo').innerHTML = "--:--.---"; 
+        resetSectorBars();
         resetRivalUI();
         
         fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "resetMemoria", codiceScuderia: codiceScuderiaAttivo }) })
@@ -385,31 +431,49 @@
       
       if (tInizio === 0) { 
         tInizio = ora; tUltimo = ora; splitCount = 0; lapCount = 1;
+        resetSectorBars();
         document.getElementById('lap-counter').innerText = "GIRO " + lapCount;
         document.getElementById('sub-info').innerText = "TRACKING..."; 
         return; 
       }
       let durata = 0, dSplit = 0, display = document.getElementById('main-time'), inter = document.getElementById('intertempo');
       
-      // 🏎️ GESTIONE COLORI INTELLIGENTI (VERDE / BIANCO / ARANCIONE)
+      // 🏎️ GESTIONE COLORI INTELLIGENTI (VERDE / BIANCO / ARANCIONE) + BARRETTE SETTORI
       if (tipo === 'Split') {
+        if (resetBarsTimer) { resetSectorBars(); }
         splitCount++; durata = ora - tUltimo; tUltimo = ora; display.innerText = msToTime(durata); inter.innerHTML = "SPLIT " + splitCount + "<br>" + msToTime(durata);
         
         let bestSp = localRecords['S' + splitCount] || 999999999;
+        let coloreSettore = "#ff9100";
         if (durata <= bestSp) {
-          display.style.color = "#00e676"; // 🟢 VERDE: Nuovo record di settore!
+          coloreSettore = "#00e676"; // 🟢 VERDE: Nuovo record di settore!
           localRecords['S' + splitCount] = durata;
         } else if (durata <= (bestSp + 100)) {
-          display.style.color = "#ffffff"; // ⚪ BIANCO: Ottimo tempo! (entro 0.100s dal Best)
-        } else {
-          display.style.color = "#ff9100"; // 🟠 ARANCIONE: Oltre 1 decimo dal Best
+          coloreSettore = "#ffffff"; // ⚪ BIANCO: Ottimo tempo! (entro 0.100s dal Best)
         }
+        display.style.color = coloreSettore;
+        setSectorBarColor(splitCount, coloreSettore);
 
         fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'Split', colSplit: splitCount, durataMs: durata, durataSplitMs: 0, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText, codiceScuderia: codiceScuderiaAttivo })});
       } else if (tipo === 'Lap1') {
+        if (resetBarsTimer) { resetSectorBars(); }
         splitCount++; dSplit = ora - tUltimo; durata = ora - tInizio; tInizio = ora; tUltimo = ora; 
         display.innerText = msToTime(durata); 
         inter.innerHTML = "S" + splitCount + ": " + msToTime(dSplit) + "<br>LAP: " + msToTime(durata);
+        
+        // Colore dell'ultimo settore per la barretta finale
+        let bestUltimoSp = localRecords['S' + splitCount] || 999999999;
+        let coloreUltimoSettore = "#ff9100";
+        if (dSplit <= bestUltimoSp) {
+          coloreUltimoSettore = "#00e676";
+          localRecords['S' + splitCount] = dSplit;
+        } else if (dSplit <= (bestUltimoSp + 100)) {
+          coloreUltimoSettore = "#ffffff";
+        }
+        setSectorBarColor(splitCount, coloreUltimoSettore);
+
+        // Dopo 1,2 secondi azzera le barrette per il nuovo giro
+        resetBarsTimer = setTimeout(resetSectorBars, 1200);
         
         lapCount++;
         document.getElementById('lap-counter').innerText = "GIRO " + lapCount;
