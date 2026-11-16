@@ -11,8 +11,11 @@
     #lap-counter { font-size: 18px; color: #00e676; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
     #sub-info { font-size: 14px; color: #ffeb3b; text-transform: uppercase; font-weight: bold; margin-bottom: 4px; }
     #main-time { font-size: 68px; font-weight: 900; font-family: 'monospace'; margin: 0; line-height: 1; color: #fff; }
-    #intertempo { font-size: 20px; color: #00e5ff; font-family: 'monospace'; height: 50px; margin-top: 5px; font-weight: bold; line-height: 1.2; }
+    #intertempo { font-size: 20px; color: #00e5ff; font-family: 'monospace'; height: 48px; margin-top: 5px; font-weight: bold; line-height: 1.2; }
     
+    /* DELTA CUMULATIVO LIVE SOPRA LE BARRETTE */
+    #lap-delta { font-size: 16px; font-weight: 900; font-family: monospace; text-align: center; color: #666; letter-spacing: 1px; height: 20px; line-height: 20px; margin-bottom: 5px; text-transform: uppercase; }
+
     /* BARRETTE PERFORMANCE SETTORI (MAX 8 SPLIT) */
     .sector-bars { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-bottom: 8px; width: 100%; }
     .sec-bar { height: 12px; border-radius: 6px; background: #1c1c1c; border: 1px solid #333; transition: background 0.2s ease, box-shadow 0.2s ease; }
@@ -98,6 +101,9 @@
     <div id="intertempo">--:--.---</div>
   </div>
 
+  <!-- 📈 GUADAGNO / PERDITA CUMULATIVA SUL GIRO -->
+  <div id="lap-delta">DELTA: --.---</div>
+
   <!-- 🚦 8 BARRETTE SETTORI -->
   <div class="sector-bars" id="sector-bars">
     <div class="sec-bar" id="sec-1"></div>
@@ -136,6 +142,24 @@
     let recognition = null, isListening = false, codiceScuderiaAttivo = "";
     let rivalNumeroAttivo = "";
     let resetBarsTimer = null;
+    let currentLapCum = {}, bestLapCum = {};
+
+    function formatDelta(diffMs) {
+      let sign = diffMs > 0 ? "+" : (diffMs < 0 ? "-" : "");
+      let abs = Math.abs(diffMs);
+      let secs = Math.floor(abs / 1000);
+      let ms = abs % 1000;
+      let msStr = (ms < 100 ? (ms < 10 ? '00' : '0') : '') + ms;
+      return sign + secs + "." + msStr + "s";
+    }
+
+    function resetDeltaDisplay() {
+      let deltaEl = document.getElementById('lap-delta');
+      if (deltaEl) {
+        deltaEl.innerText = "DELTA: --.---";
+        deltaEl.style.color = "#666";
+      }
+    }
 
     function setSectorBarColor(num, colorHex) {
       if (num >= 1 && num <= 8) {
@@ -331,8 +355,10 @@
 
       if (tipo === 'Home') {
         tInizio = 0; tUltimo = 0; splitCount = 0; lapCount = 0; tRivalInizio = 0; tRivalUltimo = 0;
+        currentLapCum = {}; bestLapCum = {}; localRecords = {};
         document.getElementById('lap-counter').innerText = "GIRO 0";
         document.getElementById('sub-info').innerText = "PRONTO";
+        resetDeltaDisplay();
         resetSectorBars();
         resetRivalUI();
         document.getElementById('nota-vocale-testo').value = ""; 
@@ -343,18 +369,22 @@
       }
       if (tipo === 'Stop') {
         tInizio = 0; tUltimo = 0; splitCount = 0; lapCount = 0; tRivalInizio = 0; tRivalUltimo = 0;
+        currentLapCum = {};
         document.getElementById('lap-counter').innerText = "GIRO 0";
         document.getElementById('sub-info').innerText = "STOPPED"; document.getElementById('main-time').style.color = "#ffffff";
+        resetDeltaDisplay();
         resetSectorBars();
         return;
       }
       if (tipo === 'Reset') {
         if (!confirm("Azzerare cronometro sul telefono?")) return;
         tInizio = 0; tUltimo = 0; splitCount = 0; lapCount = 0; localRecords = {};
+        currentLapCum = {}; bestLapCum = {};
         document.getElementById('lap-counter').innerText = "GIRO 0";
         document.getElementById('main-time').innerText = "00:00.000"; 
         document.getElementById('main-time').style.color = "#ffffff"; 
         document.getElementById('intertempo').innerHTML = "--:--.---"; 
+        resetDeltaDisplay();
         resetSectorBars();
         resetRivalUI();
         
@@ -431,18 +461,37 @@
       
       if (tInizio === 0) { 
         tInizio = ora; tUltimo = ora; splitCount = 0; lapCount = 1;
+        currentLapCum = {};
+        resetDeltaDisplay();
         resetSectorBars();
         document.getElementById('lap-counter').innerText = "GIRO " + lapCount;
         document.getElementById('sub-info').innerText = "TRACKING..."; 
         return; 
       }
       let durata = 0, dSplit = 0, display = document.getElementById('main-time'), inter = document.getElementById('intertempo');
+      let deltaEl = document.getElementById('lap-delta');
       
-      // 🏎️ GESTIONE COLORI INTELLIGENTI (VERDE / BIANCO / ARANCIONE) + BARRETTE SETTORI
+      // 🏎️ GESTIONE COLORI INTELLIGENTI + BARRETTE + DELTA CUMULATIVO LIVE
       if (tipo === 'Split') {
         if (resetBarsTimer) { resetSectorBars(); }
-        splitCount++; durata = ora - tUltimo; tUltimo = ora; display.innerText = msToTime(durata); inter.innerHTML = "SPLIT " + splitCount + "<br>" + msToTime(durata);
+        splitCount++;
+        let tempoCumulativo = ora - tInizio;
+        durata = ora - tUltimo; 
+        tUltimo = ora; 
+        display.innerText = msToTime(durata); 
+        inter.innerHTML = "SPLIT " + splitCount + "<br>" + msToTime(durata);
         
+        // Salva il tempo cumulativo di questo split e calcola il guadagno/perdita rispetto al Best Lap
+        currentLapCum[splitCount] = tempoCumulativo;
+        if (bestLapCum[splitCount] !== undefined) {
+          let diff = tempoCumulativo - bestLapCum[splitCount];
+          deltaEl.innerText = "DELTA S" + splitCount + ": " + formatDelta(diff);
+          deltaEl.style.color = diff < 0 ? "#00e676" : (diff > 0 ? "#ff9100" : "#ffffff");
+        } else {
+          deltaEl.innerText = "RIF. S" + splitCount + ": " + msToTime(tempoCumulativo);
+          deltaEl.style.color = "#aaa";
+        }
+
         let bestSp = localRecords['S' + splitCount] || 999999999;
         let coloreSettore = "#ff9100";
         if (durata <= bestSp) {
@@ -457,10 +506,24 @@
         fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'Split', colSplit: splitCount, durataMs: durata, durataSplitMs: 0, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText, codiceScuderia: codiceScuderiaAttivo })});
       } else if (tipo === 'Lap1') {
         if (resetBarsTimer) { resetSectorBars(); }
-        splitCount++; dSplit = ora - tUltimo; durata = ora - tInizio; tInizio = ora; tUltimo = ora; 
+        splitCount++; 
+        dSplit = ora - tUltimo; 
+        durata = ora - tInizio; 
+        tInizio = ora; 
+        tUltimo = ora; 
         display.innerText = msToTime(durata); 
         inter.innerHTML = "S" + splitCount + ": " + msToTime(dSplit) + "<br>LAP: " + msToTime(durata);
         
+        currentLapCum['LAP'] = durata;
+        if (bestLapCum['LAP'] !== undefined) {
+          let diffLap = durata - bestLapCum['LAP'];
+          deltaEl.innerText = "DELTA GIRO: " + formatDelta(diffLap);
+          deltaEl.style.color = diffLap < 0 ? "#00e676" : (diffLap > 0 ? "#ff9100" : "#ffffff");
+        } else {
+          deltaEl.innerText = "GIRO RIFERIMENTO";
+          deltaEl.style.color = "#aaa";
+        }
+
         // Colore dell'ultimo settore per la barretta finale
         let bestUltimoSp = localRecords['S' + splitCount] || 999999999;
         let coloreUltimoSettore = "#ff9100";
@@ -482,11 +545,13 @@
         if (durata <= bestLap) {
           display.style.color = "#00e676"; // 🟢 VERDE: Nuovo Best Lap!
           localRecords['LAP'] = durata;
+          bestLapCum = Object.assign({}, currentLapCum);
         } else if (durata <= (bestLap + 100)) {
           display.style.color = "#ffffff"; // ⚪ BIANCO: Giro ottimo! (entro 0.100s dal Best Lap)
         } else {
           display.style.color = "#ff9100"; // 🟠 ARANCIONE: Oltre 1 decimo dal Best Lap
         }
+        currentLapCum = {};
         
         fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'Lap1', colSplit: splitCount, durataMs: durata, durataSplitMs: dSplit, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText, codiceScuderia: codiceScuderiaAttivo })})
         .then(res => res.json())
