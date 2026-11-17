@@ -750,7 +750,27 @@
         return;
       }
     }
+    function comandoFoglioRemoto(azione) {
+      if (!codiceScuderiaAttivo) return alert("Codice scuderia non attivo!");
+      let msgConferma = azione === 'salvaFoglioTeam'
+        ? "Vuoi SALVARE tutti i giri del foglio team nell'Archivio?"
+        : "ATTENZIONE: Vuoi CANCELLARE tutti i giri dalla schermata CRONOMETRO del foglio team?";
 
+      if (!confirm(msgConferma)) return;
+
+      let subEl = document.getElementById('sub-info');
+      if (subEl) subEl.innerText = navigator.onLine ? "ESECUZIONE SUL FOGLIO..." : "ACCODATO OFFLINE";
+
+      inviaOAccodaDato({
+        action: azione,
+        codiceScuderia: codiceScuderiaAttivo
+      }, (data) => {
+        if (data && data.message) {
+          alert(data.message);
+          if (subEl) subEl.innerText = data.message;
+        }
+      });
+    }
     function msToTime(s) {
       let ms = s % 1000; s = (s - ms) / 1000; let secs = s % 60; let mins = (s - secs) / 60;
       return (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs + '.' + (ms < 100 ? (ms < 10 ? '00' : '0') : '') + ms;
