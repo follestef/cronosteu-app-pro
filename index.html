@@ -5,18 +5,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>CronoPro</title>
-  <link rel="manifest" href="manifest.json?v=2">
+  <link rel="manifest" href="manifest.json?v=4">
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CronoPro">
-  <link rel="apple-touch-icon" href="icon-512.png?v=3">
+  <link rel="apple-touch-icon" href="icon-512.png?v=4">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #000; color: #fff; margin: 0; padding: 10px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
     .display { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
     #lap-counter { font-size: 18px; color: #00e676; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
     #sub-info { font-size: 14px; color: #ffeb3b; text-transform: uppercase; font-weight: bold; margin-bottom: 4px; }
+    #sync-status-bar { display: none; background: #ff9100; color: #000; font-size: 11px; font-weight: 900; padding: 3px 10px; border-radius: 12px; margin-bottom: 4px; cursor: pointer; letter-spacing: 0.5px; text-transform: uppercase; }
     #main-time { font-size: 68px; font-weight: 900; font-family: 'monospace'; margin: 0; line-height: 1; color: #fff; }
     #intertempo { font-size: 20px; color: #00e5ff; font-family: 'monospace'; height: 48px; margin-top: 5px; font-weight: bold; line-height: 1.2; }
     
@@ -104,6 +105,7 @@
   <div class="display">
     <div id="lap-counter">GIRO 0</div>
     <div id="sub-info">PRONTO</div>
+    <div id="sync-status-bar" onclick="sincronizzaCodaOffline(true)"></div>
     <div id="main-time">00:00.000</div>
     <div id="intertempo">--:--.---</div>
   </div>
@@ -144,12 +146,130 @@
 
   <script>
     const MASTER_URL = "https://script.google.com/macros/s/AKfycbw2POXGLhrmEgZ0Q8nBW6MC56pudFZNvGsGDwZjmPZovnNkIo0tyCWbcC4V8yCcokBO/exec";
+    const QUEUE_KEY = "cronopro_offline_queue";
     
     let tInizio = 0, tUltimo = 0, splitCount = 0, lapCount = 0, localRecords = {}, varMechanic = "", varCategory = "", varTrack = "", tRivalInizio = 0, tRivalUltimo = 0, rivalSplitCount = 0;
     let recognition = null, isListening = false, codiceScuderiaAttivo = "";
     let rivalNumeroAttivo = "";
     let resetBarsTimer = null;
     let currentLapCum = {}, bestLapCum = {};
+    let isSyncing = false;
+
+    /* 📡 GESTIONE CODA OFFLINE E SINCRONIZZAZIONE */
+    function getOfflineQueue() {
+      try {
+        return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveOfflineQueue(queue) {
+      localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+      aggiornaBarraSync();
+    }
+
+    function aggiornaBarraSync() {
+      let bar = document.getElementById('sync-status-bar');
+      if (!bar) return;
+      let queue = getOfflineQueue();
+      if (queue.length > 0) {
+        bar.style.display = "inline-block";
+        bar.style.background = "#ff9100";
+        bar.style.color = "#000";
+        bar.innerText = "📴 IN CODA OFFLINE: " + queue.length + " (TOCCA PER INVIARE)";
+      } else {
+        bar.style.display = "none";
+      }
+    }
+
+    function accodaDatoOffline(payload) {
+      let queue = getOfflineQueue();
+      queue.push(payload);
+      saveOfflineQueue(queue);
+    }
+
+    function inviaOAccodaDato(payload, onSuccess) {
+      if (!navigator.onLine) {
+        accodaDatoOffline(payload);
+        return;
+      }
+      fetch(MASTER_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Errore rete");
+        return res.json();
+      })
+      .then(data => {
+        if (onSuccess) onSuccess(data);
+        if (getOfflineQueue().length > 0) {
+          sincronizzaCodaOffline(false);
+        }
+      })
+      .catch(() => {
+        // Se la rete cade o il segnale in pista è debole, salva in coda sul telefono
+        accodaDatoOffline(payload);
+      });
+    }
+
+    async function sincronizzaCodaOffline(manuale = false) {
+      let queue = getOfflineQueue();
+      if (queue.length === 0) {
+        aggiornaBarraSync();
+        return;
+      }
+      if (!navigator.onLine) {
+        if (manuale) alert("Sei ancora offline. Riprova appena hai copertura internet o Wi-Fi in hotel!");
+        return;
+      }
+      if (isSyncing) return;
+
+      isSyncing = true;
+      let bar = document.getElementById('sync-status-bar');
+
+      while (queue.length > 0) {
+        if (bar) {
+          bar.style.display = "inline-block";
+          bar.style.background = "#00e5ff";
+          bar.style.color = "#000";
+          bar.innerText = "🔄 INVIO DATI IN CORSO... (" + queue.length + ")";
+        }
+        try {
+          let res = await fetch(MASTER_URL, {
+            method: "POST",
+            body: JSON.stringify(queue[0])
+          });
+          if (!res.ok) throw new Error("Errore server");
+          let data = await res.json();
+          if (data && data.miglior) document.getElementById('best-val').innerText = data.miglior;
+          if (data && data.ideal) document.getElementById('ideal-val').innerText = data.ideal;
+
+          queue.shift();
+          localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+        } catch (err) {
+          break;
+        }
+      }
+
+      isSyncing = false;
+      if (queue.length === 0) {
+        if (bar) {
+          bar.style.display = "inline-block";
+          bar.style.background = "#00e676";
+          bar.style.color = "#000";
+          bar.innerText = "✅ TUTTI I GIRI SINCRONIZZATI!";
+          setTimeout(aggiornaBarraSync, 3000);
+        }
+      } else {
+        aggiornaBarraSync();
+      }
+    }
+
+    window.addEventListener('online', () => {
+      sincronizzaCodaOffline(false);
+    });
 
     function formatDelta(diffMs) {
       let sign = diffMs > 0 ? "+" : (diffMs < 0 ? "-" : "");
@@ -200,11 +320,13 @@
     };
 
     window.addEventListener('DOMContentLoaded', () => {
+      aggiornaBarraSync();
       let savedCod = localStorage.getItem('saved_codiceScuderia');
       let savedTime = localStorage.getItem('saved_loginTime');
       let now = Date.now();
 
-      if (savedCod && savedTime && (now - savedTime < 86400000)) {
+      // Se offline, permette comunque l'accesso con il codice salvato; se online rispetta le 24 ore
+      if (savedCod && savedTime && (!navigator.onLine || (now - savedTime < 86400000))) {
         document.getElementById('codice-scuderia-input').value = savedCod;
         autenticaLicenza(true);
       } else {
@@ -213,11 +335,69 @@
     });
 
     function disconnettiScuderia() {
-      if(confirm("Vuoi azzerare il codice scuderia sul telefono?")) {
-        localStorage.clear();
-        document.getElementById('mechanic-overlay').style.display = 'none';
+      if (getOfflineQueue().length > 0) {
+        if (!confirm("ATTENZIONE: Hai " + getOfflineQueue().length + " dati non ancora inviati in coda! Se resetti la licenza li perderai. Continuare?")) return;
+      } else {
+        if(!confirm("Vuoi azzerare il codice scuderia sul telefono?")) return;
+      }
+      localStorage.clear();
+      aggiornaBarraSync();
+      document.getElementById('mechanic-overlay').style.display = 'none';
+      document.getElementById('login-overlay').style.display = 'flex';
+      document.getElementById('codice-scuderia-input').value = "";
+    }
+
+    function popolaPaddockDaDati(data, isOffline) {
+      let logoImmagine = data.logoTeam && data.logoTeam !== "" ? data.logoTeam : "https://i.postimg.cc/34nxWxHr/b4c7793b-5a42-423c-9991-b5bb88d8b1a2.jpg";
+      document.getElementById('logo-dinamico-team').src = logoImmagine;
+      document.getElementById('titolo-paddock').innerText = codiceScuderiaAttivo + (isOffline ? " (OFFLINE)" : "");
+
+      document.getElementById('pilota').innerHTML = ""; 
+      document.getElementById('driver-select').innerHTML = '<option value="" disabled selected>PILOTA</option>';
+      (data.piloti || []).forEach(n => { 
+        let o1 = document.createElement('option'); o1.value = n; o1.text = n.toUpperCase(); document.getElementById('pilota').appendChild(o1);
+        let o2 = document.createElement('option'); o2.value = n; o2.text = n.toUpperCase(); document.getElementById('driver-select').appendChild(o2);
+      });
+      
+      document.getElementById('mechanic-select').innerHTML = '<option value="" disabled selected>MECCANICO</option>'; 
+      (data.meccanici && data.meccanici.length ? data.meccanici : ["CAPO TEAM"]).forEach(m => document.getElementById('mechanic-select').add(new Option(m.toUpperCase(), m)));
+      
+      document.getElementById('category-select').innerHTML = '<option value="" disabled selected>CATEGORIA</option>'; 
+      (data.categorie && data.categorie.length ? data.categorie : ["KART"]).forEach(c => document.getElementById('category-select').add(new Option(c.toUpperCase(), c)));
+      
+      document.getElementById('track-select').innerHTML = '<option value="" disabled selected>PISTA</option>'; 
+      (data.circuiti && data.circuiti.length ? data.circuiti : ["PISTA"]).forEach(p => document.getElementById('track-select').add(new Option(p.toUpperCase(), p)));
+      
+      document.getElementById('session-select').innerHTML = '<option value="" disabled selected>TIPO PROVA</option>';
+      (data.sessioni || ["PROVE LIBERE", "QUALIFICA", "GARA"]).forEach(s => { document.getElementById('session-select').add(new Option(s.toUpperCase(), s)); });
+
+      ['mechanic', 'category', 'track', 'driver', 'session'].forEach(k => {
+        let savedVal = localStorage.getItem('saved_' + k);
+        let selectElem = document.getElementById(k + '-select');
+        if(savedVal && selectElem) {
+          for(let i=0; i<selectElem.options.length; i++) {
+            if(selectElem.options[i].value === savedVal) {
+              selectElem.selectedIndex = i;
+              document.getElementById('label-' + k).innerText = savedVal.toUpperCase();
+              break;
+            }
+          }
+        }
+      });
+
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('mechanic-overlay').style.display = 'flex';
+      document.getElementById('sub-info').innerText = isOffline ? "MODALITÀ OFFLINE" : "REGISTRATO";
+    }
+
+    function caricaPaddockOffline(cod, autoLogin) {
+      let cached = localStorage.getItem('saved_paddockData_' + cod);
+      if (cached) {
+        popolaPaddockDaDati(JSON.parse(cached), true);
+      } else {
+        if (!autoLogin) alert("Nessuna connessione internet e nessun dato salvato sul telefono per questo codice. Effettua il primo accesso dove c'è rete!");
         document.getElementById('login-overlay').style.display = 'flex';
-        document.getElementById('codice-scuderia-input').value = "";
+        document.getElementById('sub-info').innerText = "OFFLINE";
       }
     }
 
@@ -226,7 +406,13 @@
       if(!cod) return alert("Inserisci un codice scuderia valido!");
       
       codiceScuderiaAttivo = cod;
-      document.getElementById('sub-info').innerText = "CONNESSIFICAZIONE IN CORSO...";
+
+      if (!navigator.onLine) {
+        caricaPaddockOffline(codiceScuderiaAttivo, autoLogin);
+        return;
+      }
+
+      document.getElementById('sub-info').innerText = "CONNESSIONE IN CORSO...";
       
       fetch(MASTER_URL, {
         method: "POST",
@@ -244,51 +430,14 @@
         
         localStorage.setItem('saved_codiceScuderia', codiceScuderiaAttivo);
         localStorage.setItem('saved_loginTime', Date.now());
+        localStorage.setItem('saved_paddockData_' + codiceScuderiaAttivo, JSON.stringify(data));
 
-        let logoImmagine = data.logoTeam && data.logoTeam !== "" ? data.logoTeam : "https://i.postimg.cc/34nxWxHr/b4c7793b-5a42-423c-9991-b5bb88d8b1a2.jpg";
-        document.getElementById('logo-dinamico-team').src = logoImmagine;
-        document.getElementById('titolo-paddock').innerText = codiceScuderiaAttivo;
-
-        document.getElementById('pilota').innerHTML = ""; 
-        document.getElementById('driver-select').innerHTML = '<option value="" disabled selected>PILOTA</option>';
-        data.piloti.forEach(n => { 
-          let o1 = document.createElement('option'); o1.value = n; o1.text = n.toUpperCase(); document.getElementById('pilota').appendChild(o1);
-          let o2 = document.createElement('option'); o2.value = n; o2.text = n.toUpperCase(); document.getElementById('driver-select').appendChild(o2);
-        });
-        
-        document.getElementById('mechanic-select').innerHTML = '<option value="" disabled selected>MECCANICO</option>'; 
-        (data.meccanici.length ? data.meccanici : ["CAPO TEAM"]).forEach(m => document.getElementById('mechanic-select').add(new Option(m.toUpperCase(), m)));
-        
-        document.getElementById('category-select').innerHTML = '<option value="" disabled selected>CATEGORIA</option>'; 
-        (data.categorie.length ? data.categorie : ["KART"]).forEach(c => document.getElementById('category-select').add(new Option(c.toUpperCase(), c)));
-        
-        document.getElementById('track-select').innerHTML = '<option value="" disabled selected>PISTA</option>'; 
-        (data.circuiti.length ? data.circuiti : ["PISTA"]).forEach(p => document.getElementById('track-select').add(new Option(p.toUpperCase(), p)));
-        
-        document.getElementById('session-select').innerHTML = '<option value="" disabled selected>TIPO PROVA</option>';
-        data.sessioni.forEach(s => { document.getElementById('session-select').add(new Option(s.toUpperCase(), s)); });
-
-        ['mechanic', 'category', 'track', 'driver', 'session'].forEach(k => {
-          let savedVal = localStorage.getItem('saved_' + k);
-          let selectElem = document.getElementById(k + '-select');
-          if(savedVal && selectElem) {
-            for(let i=0; i<selectElem.options.length; i++) {
-              if(selectElem.options[i].value === savedVal) {
-                selectElem.selectedIndex = i;
-                document.getElementById('label-' + k).innerText = savedVal.toUpperCase();
-                break;
-              }
-            }
-          }
-        });
-
-        document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('mechanic-overlay').style.display = 'flex';
-        document.getElementById('sub-info').innerText = "REGISTRATO";
+        popolaPaddockDaDati(data, false);
+        sincronizzaCodaOffline(false);
       })
-      .catch(err => {
-        if(!autoLogin) alert("Errore di rete: " + err.message);
-        document.getElementById('login-overlay').style.display = 'flex';
+      .catch(() => {
+        // Se la rete cade durante il login, usa il salvataggio locale
+        caricaPaddockOffline(codiceScuderiaAttivo, autoLogin);
       });
     }
 
@@ -300,15 +449,18 @@
       varMechanic = m; varCategory = c; varTrack = t;
       document.getElementById('pilota').value = d; document.getElementById('sessione').value = s;
       
-      fetch(MASTER_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "getAppData", codiceScuderia: codiceScuderiaAttivo, pilotaSelezionato: d })
-      })
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById('best-val').innerText = data.best || "--:--.---"; 
-        document.getElementById('ideal-val').innerText = data.ideal || "--:--.---";
-      });
+      if (navigator.onLine) {
+        fetch(MASTER_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "getAppData", codiceScuderia: codiceScuderiaAttivo, pilotaSelezionato: d })
+        })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('best-val').innerText = data.best || "--:--.---"; 
+          document.getElementById('ideal-val').innerText = data.ideal || "--:--.---";
+        })
+        .catch(() => {});
+      }
 
       document.getElementById('mechanic-overlay').style.display = 'none';
     }
@@ -364,7 +516,7 @@
         tInizio = 0; tUltimo = 0; splitCount = 0; lapCount = 0; tRivalInizio = 0; tRivalUltimo = 0;
         currentLapCum = {}; bestLapCum = {}; localRecords = {};
         document.getElementById('lap-counter').innerText = "GIRO 0";
-        document.getElementById('sub-info').innerText = "PRONTO";
+        document.getElementById('sub-info').innerText = navigator.onLine ? "PRONTO" : "MODALITÀ OFFLINE";
         resetDeltaDisplay();
         resetSectorBars();
         resetRivalUI();
@@ -395,8 +547,13 @@
         resetSectorBars();
         resetRivalUI();
         
-        fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "resetMemoria", codiceScuderia: codiceScuderiaAttivo }) })
-        .then(res => res.json()).then(res => document.getElementById('sub-info').innerText = res.sub);
+        if (navigator.onLine) {
+          fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "resetMemoria", codiceScuderia: codiceScuderiaAttivo }) })
+          .then(res => res.json()).then(res => document.getElementById('sub-info').innerText = res.sub)
+          .catch(() => document.getElementById('sub-info').innerText = "RESET LOCALE");
+        } else {
+          document.getElementById('sub-info').innerText = "RESET LOCALE (OFFLINE)";
+        }
         return;
       }
       
@@ -421,22 +578,19 @@
           document.getElementById('r-split-label').innerText = "R-SPLIT " + rivalSplitCount; 
           document.getElementById('r-split-box').innerText = msToTime(dRival);
           
-          fetch(MASTER_URL, { 
-            method: "POST", 
-            body: JSON.stringify({ 
-              action: "registraDato", 
-              tipo: 'RivalSplit', 
-              colSplit: rivalSplitCount, 
-              durataMs: dRival, 
-              durataSplitMs: 0, 
-              pilota: nomeRivalCompleto, 
-              sessione: document.getElementById('sessione').value, 
-              categoria: varCategory, 
-              circuito: varTrack, 
-              meccanico: varMechanic, 
-              notaVocale: "", 
-              codiceScuderia: codiceScuderiaAttivo 
-            })
+          inviaOAccodaDato({ 
+            action: "registraDato", 
+            tipo: 'RivalSplit', 
+            colSplit: rivalSplitCount, 
+            durataMs: dRival, 
+            durataSplitMs: 0, 
+            pilota: nomeRivalCompleto, 
+            sessione: document.getElementById('sessione').value, 
+            categoria: varCategory, 
+            circuito: varTrack, 
+            meccanico: varMechanic, 
+            notaVocale: "", 
+            codiceScuderia: codiceScuderiaAttivo 
           });
         } else {
           let dGiroR = ora - tRivalInizio; tRivalInizio = ora; tRivalUltimo = ora;
@@ -444,22 +598,19 @@
           document.getElementById('r-split-label').innerText = "R-SPLIT " + rivalSplitCount; 
           document.getElementById('r-split-box').innerText = msToTime(dRival);
           
-          fetch(MASTER_URL, { 
-            method: "POST", 
-            body: JSON.stringify({ 
-              action: "registraDato", 
-              tipo: 'Lap1', 
-              colSplit: rivalSplitCount, 
-              durataMs: dGiroR, 
-              durataSplitMs: dRival, 
-              pilota: nomeRivalCompleto, 
-              sessione: document.getElementById('sessione').value, 
-              categoria: varCategory, 
-              circuito: varTrack, 
-              meccanico: varMechanic, 
-              notaVocale: "", 
-              codiceScuderia: codiceScuderiaAttivo 
-            })
+          inviaOAccodaDato({ 
+            action: "registraDato", 
+            tipo: 'Lap1', 
+            colSplit: rivalSplitCount, 
+            durataMs: dGiroR, 
+            durataSplitMs: dRival, 
+            pilota: nomeRivalCompleto, 
+            sessione: document.getElementById('sessione').value, 
+            categoria: varCategory, 
+            circuito: varTrack, 
+            meccanico: varMechanic, 
+            notaVocale: "", 
+            codiceScuderia: codiceScuderiaAttivo 
           });
           rivalSplitCount = 0;
         }
@@ -472,7 +623,7 @@
         resetDeltaDisplay();
         resetSectorBars();
         document.getElementById('lap-counter').innerText = "GIRO " + lapCount;
-        document.getElementById('sub-info').innerText = "TRACKING..."; 
+        document.getElementById('sub-info').innerText = navigator.onLine ? "TRACKING..." : "TRACKING (OFFLINE)"; 
         return; 
       }
       let durata = 0, dSplit = 0, display = document.getElementById('main-time'), inter = document.getElementById('intertempo');
@@ -488,7 +639,6 @@
         display.innerText = msToTime(durata); 
         inter.innerHTML = "SPLIT " + splitCount + "<br>" + msToTime(durata);
         
-        // Salva il tempo cumulativo di questo split e calcola il guadagno/perdita rispetto al Best Lap
         currentLapCum[splitCount] = tempoCumulativo;
         if (bestLapCum[splitCount] !== undefined) {
           let diff = tempoCumulativo - bestLapCum[splitCount];
@@ -502,15 +652,28 @@
         let bestSp = localRecords['S' + splitCount] || 999999999;
         let coloreSettore = "#ff9100";
         if (durata <= bestSp) {
-          coloreSettore = "#00e676"; // 🟢 VERDE: Nuovo record di settore!
+          coloreSettore = "#00e676";
           localRecords['S' + splitCount] = durata;
         } else if (durata <= (bestSp + 100)) {
-          coloreSettore = "#ffffff"; // ⚪ BIANCO: Ottimo tempo! (entro 0.100s dal Best)
+          coloreSettore = "#ffffff";
         }
         display.style.color = coloreSettore;
         setSectorBarColor(splitCount, coloreSettore);
 
-        fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'Split', colSplit: splitCount, durataMs: durata, durataSplitMs: 0, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText, codiceScuderia: codiceScuderiaAttivo })});
+        inviaOAccodaDato({
+          action: "registraDato",
+          tipo: 'Split',
+          colSplit: splitCount,
+          durataMs: durata,
+          durataSplitMs: 0,
+          pilota: document.getElementById('pilota').value,
+          sessione: document.getElementById('sessione').value,
+          categoria: varCategory,
+          circuito: varTrack,
+          meccanico: varMechanic,
+          notaVocale: nVocaleText,
+          codiceScuderia: codiceScuderiaAttivo
+        });
       } else if (tipo === 'Lap1') {
         if (resetBarsTimer) { resetSectorBars(); }
         splitCount++; 
@@ -531,7 +694,6 @@
           deltaEl.style.color = "#aaa";
         }
 
-        // Colore dell'ultimo settore per la barretta finale
         let bestUltimoSp = localRecords['S' + splitCount] || 999999999;
         let coloreUltimoSettore = "#ff9100";
         if (dSplit <= bestUltimoSp) {
@@ -542,7 +704,6 @@
         }
         setSectorBarColor(splitCount, coloreUltimoSettore);
 
-        // Dopo 1,2 secondi azzera le barrette per il nuovo giro
         resetBarsTimer = setTimeout(resetSectorBars, 1200);
         
         lapCount++;
@@ -550,19 +711,30 @@
         
         let bestLap = localRecords['LAP'] || 999999999;
         if (durata <= bestLap) {
-          display.style.color = "#00e676"; // 🟢 VERDE: Nuovo Best Lap!
+          display.style.color = "#00e676";
           localRecords['LAP'] = durata;
           bestLapCum = Object.assign({}, currentLapCum);
         } else if (durata <= (bestLap + 100)) {
-          display.style.color = "#ffffff"; // ⚪ BIANCO: Giro ottimo! (entro 0.100s dal Best Lap)
+          display.style.color = "#ffffff";
         } else {
-          display.style.color = "#ff9100"; // 🟠 ARANCIONE: Oltre 1 decimo dal Best Lap
+          display.style.color = "#ff9100";
         }
         currentLapCum = {};
         
-        fetch(MASTER_URL, { method: "POST", body: JSON.stringify({ action: "registraDato", tipo: 'Lap1', colSplit: splitCount, durataMs: durata, durataSplitMs: dSplit, pilota: document.getElementById('pilota').value, sessione: document.getElementById('sessione').value, categoria: varCategory, circuito: varTrack, meccanico: varMechanic, notaVocale: nVocaleText, codiceScuderia: codiceScuderiaAttivo })})
-        .then(res => res.json())
-        .then(data => {
+        inviaOAccodaDato({
+          action: "registraDato",
+          tipo: 'Lap1',
+          colSplit: splitCount,
+          durataMs: durata,
+          durataSplitMs: dSplit,
+          pilota: document.getElementById('pilota').value,
+          sessione: document.getElementById('sessione').value,
+          categoria: varCategory,
+          circuito: varTrack,
+          meccanico: varMechanic,
+          notaVocale: nVocaleText,
+          codiceScuderia: codiceScuderiaAttivo
+        }, (data) => {
           if (data.miglior) document.getElementById('best-val').innerText = data.miglior;
           if (data.ideal) document.getElementById('ideal-val').innerText = data.ideal;
         });
@@ -576,6 +748,7 @@
       let ms = s % 1000; s = (s - ms) / 1000; let secs = s % 60; let mins = (s - secs) / 60;
       return (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs + '.' + (ms < 100 ? (ms < 10 ? '00' : '0') : '') + ms;
     }
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
     }
