@@ -4,6 +4,13 @@
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>CronoPro</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CronoPro">
+  <link rel="apple-touch-icon" href="icon-512.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #000; color: #fff; margin: 0; padding: 10px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
@@ -568,6 +575,9 @@
     function msToTime(s) {
       let ms = s % 1000; s = (s - ms) / 1000; let secs = s % 60; let mins = (s - secs) / 60;
       return (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs + '.' + (ms < 100 ? (ms < 10 ? '00' : '0') : '') + ms;
+    }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
     }
   </script>
 </body>
