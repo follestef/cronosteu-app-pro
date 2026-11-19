@@ -166,6 +166,58 @@
     let currentLapCum = {}, bestLapCum = {};
     let isSyncing = false;
 
+    /* 📡 GESTIONE STATO ONLINE/OFFLINE DEL PADDOCK */
+    function aggiornaTitoloPaddockOnline(isOnline) {
+      if (!codiceScuderiaAttivo) return;
+      let titoloEl = document.getElementById('titolo-paddock');
+      if (titoloEl) {
+        titoloEl.innerText = codiceScuderiaAttivo + (isOnline ? "" : " (OFFLINE)");
+      }
+      if (tInizio === 0) {
+        let subEl = document.getElementById('sub-info');
+        if (subEl && (subEl.innerText === "MODALITÀ OFFLINE" || subEl.innerText === "OFFLINE" || subEl.innerText === "PRONTO" || subEl.innerText === "REGISTRATO")) {
+          subEl.innerText = isOnline ? "PRONTO" : "MODALITÀ OFFLINE";
+        }
+      }
+    }
+
+    function verificaConnessioneERipulisciPaddock(ricaricaDati = true) {
+      if (!codiceScuderiaAttivo) return;
+
+      if (!navigator.onLine) {
+        aggiornaTitoloPaddockOnline(false);
+        return;
+      }
+
+      // Rimuove subito (OFFLINE) e verifica che il server Master sia effettivamente raggiungibile
+      aggiornaTitoloPaddockOnline(true);
+
+      if (ricaricaDati) {
+        fetch(MASTER_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "getAppData", codiceScuderia: codiceScuderiaAttivo })
+        })
+        .then(res => {
+          if (!res.ok) throw new Error("Server non raggiungibile");
+          return res.json();
+        })
+        .then(data => {
+          if (!data || data.error) return;
+          localStorage.setItem('saved_paddockData_' + codiceScuderiaAttivo, JSON.stringify(data));
+          aggiornaTitoloPaddockOnline(true);
+          // Aggiorna gli elenchi del Paddock solo se siamo fermi (tInizio === 0)
+          if (tInizio === 0) {
+            popolaPaddockDaDati(data, false, true);
+          }
+          sincronizzaCodaOffline(false);
+        })
+        .catch(() => {
+          // Se il telefono ha Wi-Fi ma senza uscita internet reale, ripristina (OFFLINE)
+          aggiornaTitoloPaddockOnline(false);
+        });
+      }
+    }
+
     /* 📡 GESTIONE CODA OFFLINE E SINCRONIZZAZIONE */
     function getOfflineQueue() {
       try {
@@ -202,6 +254,7 @@
 
     function inviaOAccodaDato(payload, onSuccess) {
       if (!navigator.onLine) {
+        aggiornaTitoloPaddockOnline(false);
         accodaDatoOffline(payload);
         return;
       }
@@ -214,12 +267,14 @@
         return res.json();
       })
       .then(data => {
+        aggiornaTitoloPaddockOnline(true);
         if (onSuccess) onSuccess(data);
         if (getOfflineQueue().length > 0) {
           sincronizzaCodaOffline(false);
         }
       })
       .catch(() => {
+        aggiornaTitoloPaddockOnline(false);
         accodaDatoOffline(payload);
       });
     }
@@ -231,6 +286,7 @@
         return;
       }
       if (!navigator.onLine) {
+        aggiornaTitoloPaddockOnline(false);
         if (manuale) alert("Sei ancora offline. Riprova appena hai copertura internet o Wi-Fi in hotel!");
         return;
       }
@@ -253,6 +309,7 @@
           });
           if (!res.ok) throw new Error("Errore server");
           let data = await res.json();
+          aggiornaTitoloPaddockOnline(true);
           if (data && data.miglior) document.getElementById('best-val').innerText = data.miglior;
           if (data && data.ideal) document.getElementById('ideal-val').innerText = data.ideal;
 
@@ -278,7 +335,19 @@
     }
 
     window.addEventListener('online', () => {
+      verificaConnessioneERipulisciPaddock(true);
       sincronizzaCodaOffline(false);
+    });
+
+    window.addEventListener('offline', () => {
+      aggiornaTitoloPaddockOnline(false);
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && codiceScuderiaAttivo) {
+        verificaConnessioneERipulisciPaddock(true);
+        sincronizzaCodaOffline(false);
+      }
     });
 
     function formatDelta(diffMs) {
@@ -352,16 +421,17 @@
         if(!confirm("Vuoi azzerare il codice scuderia sul telefono?")) return;
       }
       localStorage.clear();
+      codiceScuderiaAttivo = "";
       aggiornaBarraSync();
       document.getElementById('mechanic-overlay').style.display = 'none';
       document.getElementById('login-overlay').style.display = 'flex';
       document.getElementById('codice-scuderia-input').value = "";
     }
 
-    function popolaPaddockDaDati(data, isOffline) {
+    function popolaPaddockDaDati(data, isOffline, mantieniSchermataAttuale = false) {
       let logoImmagine = data.logoTeam && data.logoTeam !== "" ? data.logoTeam : "https://i.postimg.cc/34nxWxHr/b4c7793b-5a42-423c-9991-b5bb88d8b1a2.jpg";
       document.getElementById('logo-dinamico-team').src = logoImmagine;
-      document.getElementById('titolo-paddock').innerText = codiceScuderiaAttivo + (isOffline ? " (OFFLINE)" : "");
+      aggiornaTitoloPaddockOnline(!isOffline);
 
       document.getElementById('pilota').innerHTML = ""; 
       document.getElementById('driver-select').innerHTML = '<option value="" disabled selected>PILOTA</option>';
@@ -396,15 +466,21 @@
         }
       });
 
-      document.getElementById('login-overlay').style.display = 'none';
-      document.getElementById('mechanic-overlay').style.display = 'flex';
-      document.getElementById('sub-info').innerText = isOffline ? "MODALITÀ OFFLINE" : "REGISTRATO";
+      if (!mantieniSchermataAttuale) {
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('mechanic-overlay').style.display = 'flex';
+        document.getElementById('sub-info').innerText = isOffline ? "MODALITÀ OFFLINE" : "REGISTRATO";
+      }
     }
 
     function caricaPaddockOffline(cod, autoLogin) {
       let cached = localStorage.getItem('saved_paddockData_' + cod);
       if (cached) {
-        popolaPaddockDaDati(JSON.parse(cached), true);
+        popolaPaddockDaDati(JSON.parse(cached), true, false);
+        // Se l'iPhone si è appena svegliato e la rete si aggancia subito dopo, ricontrolla automaticamente
+        setTimeout(() => {
+          if (navigator.onLine) verificaConnessioneERipulisciPaddock(true);
+        }, 1500);
       } else {
         if (!autoLogin) alert("Nessuna connessione internet e nessun dato salvato sul telefono per questo codice. Effettua il primo accesso dove c'è rete!");
         document.getElementById('login-overlay').style.display = 'flex';
@@ -443,7 +519,7 @@
         localStorage.setItem('saved_loginTime', Date.now());
         localStorage.setItem('saved_paddockData_' + codiceScuderiaAttivo, JSON.stringify(data));
 
-        popolaPaddockDaDati(data, false);
+        popolaPaddockDaDati(data, false, false);
         sincronizzaCodaOffline(false);
       })
       .catch(() => {
@@ -466,6 +542,7 @@
         })
         .then(res => res.json())
         .then(data => {
+          aggiornaTitoloPaddockOnline(true);
           document.getElementById('best-val').innerText = data.best || "--:--.---"; 
           document.getElementById('ideal-val').innerText = data.ideal || "--:--.---";
         })
@@ -534,6 +611,7 @@
         document.getElementById('voice-status').innerText = "PREMI E DETTA NOTE ASSETTO";
         document.getElementById('voice-bar-btn').style.border = "2px dashed #ff3d00";
         document.getElementById('mechanic-overlay').style.display = 'flex';
+        verificaConnessioneERipulisciPaddock(true);
         return;
       }
       if (tipo === 'Stop') {
