@@ -13,36 +13,43 @@
   <link rel="apple-touch-icon" href="icon-512.png?v=4">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    body { font-family: 'Segoe UI', sans-serif; background: #000; color: #fff; margin: 0; padding: 10px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #000; color: #fff; margin: 0; padding: 8px 10px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
     .display { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
-    #lap-counter { font-size: 18px; color: #00e676; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
-    #sub-info { font-size: 14px; color: #ffeb3b; text-transform: uppercase; font-weight: bold; margin-bottom: 4px; }
-    #sync-status-bar { display: none; background: #ff9100; color: #000; font-size: 11px; font-weight: 900; padding: 3px 10px; border-radius: 12px; margin-bottom: 4px; cursor: pointer; letter-spacing: 0.5px; text-transform: uppercase; }
-    #main-time { font-size: 68px; font-weight: 900; font-family: 'monospace'; margin: 0; line-height: 1; color: #fff; }
-    #intertempo { font-size: 20px; color: #00e5ff; font-family: 'monospace'; height: 48px; margin-top: 5px; font-weight: bold; line-height: 1.2; }
+    #lap-counter { font-size: 17px; color: #00e676; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
+    #sub-info { font-size: 13px; color: #ffeb3b; text-transform: uppercase; font-weight: bold; margin-bottom: 3px; }
+    #sync-status-bar { display: none; background: #ff9100; color: #000; font-size: 11px; font-weight: 900; padding: 3px 10px; border-radius: 12px; margin-bottom: 3px; cursor: pointer; letter-spacing: 0.5px; text-transform: uppercase; }
+    #main-time { font-size: 62px; font-weight: 900; font-family: 'monospace'; margin: 0; line-height: 1; color: #fff; }
+    #intertempo { font-size: 18px; color: #00e5ff; font-family: 'monospace'; height: 42px; margin-top: 4px; font-weight: bold; line-height: 1.15; }
     
+    /* GRAFICO A LINEE TREND SEQUENZA GIRI (SOPRA IL DELTA) */
+    #lap-chart-box { width: 100%; height: 42px; background: #0d0d0d; border: 1px solid #262626; border-radius: 8px; margin-bottom: 5px; padding: 3px 8px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-family: monospace; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1; }
+    #chart-title { color: #888; }
+    #chart-trend-badge { color: #666; }
+    #lap-sparkline { width: 100%; height: 24px; display: block; overflow: visible; }
+
     /* DELTA CUMULATIVO LIVE SOPRA LE BARRETTE */
-    #lap-delta { font-size: 16px; font-weight: 900; font-family: monospace; text-align: center; color: #666; letter-spacing: 1px; height: 20px; line-height: 20px; margin-bottom: 5px; text-transform: uppercase; }
+    #lap-delta { font-size: 15px; font-weight: 900; font-family: monospace; text-align: center; color: #666; letter-spacing: 1px; height: 19px; line-height: 19px; margin-bottom: 5px; text-transform: uppercase; }
 
     /* BARRETTE PERFORMANCE SETTORI CON ETICHETTA S1-S8 (MAX 8 SPLIT) */
-    .sector-bars { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin-bottom: 8px; width: 100%; }
+    .sector-bars { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin-bottom: 7px; width: 100%; }
     .sec-bar { height: 20px; border-radius: 6px; background: #1c1c1c; border: 1px solid #333; color: #666; font-size: 11px; font-weight: 900; font-family: monospace; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
 
-    .stats-row { display: grid; grid-template-columns: 1fr 1fr; background: #111; border: 1px solid #333; border-radius: 10px; padding: 8px; margin-bottom: 10px; }
-    .stat-box { text-align: center; } .stat-label { font-size: 10px; color: #aaa; text-transform: uppercase; } .stat-val { font-size: 18px; font-weight: bold; font-family: monospace; }
-    .action-grid, .rival-action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px; }
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr; background: #111; border: 1px solid #333; border-radius: 10px; padding: 6px 8px; margin-bottom: 8px; }
+    .stat-box { text-align: center; } .stat-label { font-size: 10px; color: #aaa; text-transform: uppercase; } .stat-val { font-size: 17px; font-weight: bold; font-family: monospace; }
+    .action-grid, .rival-action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 8px; }
     .btn { width: 100%; border-radius: 20px; color: #fff; font-weight: 900; text-transform: uppercase; border: none; cursor: pointer; position: relative; }
-    .split-btn { height: 125px; font-size: 32px; background: #2979ff; box-shadow: 0 6px 0 #1565c0; }
-    .lap-btn { height: 125px; font-size: 44px; background: #d50000; box-shadow: 0 6px 0 #b71c1c; }
-    .r-split-giant { height: 125px; font-size: 26px; background: #1976d2; box-shadow: 0 6px 0 #0d47a1; }
-    .r-lap-giant { height: 125px; font-size: 32px; background: #b71c1c; box-shadow: 0 6px 0 #7f0000; }
-    .rival-container { display: flex; gap: 10px; margin-bottom: 10px; width: 100%; }
-    .rival-input { width: 30%; height: 70px; border-radius: 20px; background: #000; color: #fff; border: 2px solid #555; text-align: center; font-size: 1.5rem; font-weight: bold; font-family: monospace; }
-    .rival-btn { flex: 1; height: 70px; background: #7cc2f2; color: #000; font-size: 20px; border-radius: 40px; display: flex; justify-content: center; align-items: center; box-shadow: 0 5px 0 #5a9bc7; margin: 0; font-weight: 900; }
+    .split-btn { height: 112px; font-size: 31px; background: #2979ff; box-shadow: 0 5px 0 #1565c0; }
+    .lap-btn { height: 112px; font-size: 42px; background: #d50000; box-shadow: 0 5px 0 #b71c1c; }
+    .r-split-giant { height: 112px; font-size: 25px; background: #1976d2; box-shadow: 0 5px 0 #0d47a1; }
+    .r-lap-giant { height: 112px; font-size: 31px; background: #b71c1c; box-shadow: 0 5px 0 #7f0000; }
+    .rival-container { display: flex; gap: 10px; margin-bottom: 8px; width: 100%; }
+    .rival-input { width: 30%; height: 62px; border-radius: 20px; background: #000; color: #fff; border: 2px solid #555; text-align: center; font-size: 1.4rem; font-weight: bold; font-family: monospace; }
+    .rival-btn { flex: 1; height: 62px; background: #7cc2f2; color: #000; font-size: 19px; border-radius: 40px; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 0 #5a9bc7; margin: 0; font-weight: 900; }
     .bottom-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    .home-btn { height: 55px; background: #ff9800; font-size: 16px; color: #fff; }
-    .stop-btn { height: 55px; background: #c62828; font-size: 18px; }
-    .reset-btn { height: 55px; background: #444; font-size: 16px; }
+    .home-btn { height: 50px; background: #ff9800; font-size: 15px; color: #fff; }
+    .stop-btn { height: 50px; background: #c62828; font-size: 17px; }
+    .reset-btn { height: 50px; background: #444; font-size: 15px; }
     
     #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 6000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
     .login-input { width: 100%; max-width: 320px; height: 50px; background: #222; border: 2px solid #ff9800; border-radius: 15px; color: #fff; text-align: center; font-size: 1.3rem; font-weight: bold; text-transform: uppercase; margin-bottom: 15px; }
@@ -121,6 +128,15 @@
     <div id="intertempo">--:--.---</div>
   </div>
 
+  <!-- 📊 GRAFICO A LINEE TREND SEQUENZA GIRI (PRESSIONI / PASSO) -->
+  <div id="lap-chart-box">
+    <div class="chart-header">
+      <span id="chart-title">TREND GIRI</span>
+      <span id="chart-trend-badge">IN ATTESA 1° GIRO</span>
+    </div>
+    <svg id="lap-sparkline" viewBox="0 0 320 24" preserveAspectRatio="none"></svg>
+  </div>
+
   <!-- 📈 GUADAGNO / PERDITA CUMULATIVA SUL GIRO -->
   <div id="lap-delta">DELTA: --.---</div>
 
@@ -147,7 +163,7 @@
     <input type="number" id="rival-input" class="rival-input" placeholder="N°" inputmode="numeric" pattern="[0-9]*"> <button class="btn rival-btn" onclick="press('RivalStart')">RIVAL START</button>
   </div>
   <div class="rival-action-grid" id="rival-giant-grid" style="display: none;">
-    <button class="btn r-split-giant" onclick="press('RivalSplit')"><span id="r-split-label">R-SPLIT</span><br><span id="r-split-box" style="font-size: 22px; font-family: monospace; color: #ffeb3b;">--:--.---</span></button> <button class="btn r-lap-giant" onclick="press('RivalLap')">R-LAP<br><span id="r-lap-box" style="font-size: 24px; font-family: monospace; color: #fff;">00:00.000</span></button>
+    <button class="btn r-split-giant" onclick="press('RivalSplit')"><span id="r-split-label">R-SPLIT</span><br><span id="r-split-box" style="font-size: 20px; font-family: monospace; color: #ffeb3b;">--:--.---</span></button> <button class="btn r-lap-giant" onclick="press('RivalLap')">R-LAP<br><span id="r-lap-box" style="font-size: 22px; font-family: monospace; color: #fff;">00:00.000</span></button>
   </div>
   <div class="bottom-bar">
     <button class="btn home-btn" onclick="press('Home')"><i class="fa-solid fa-house"></i> HOME</button> <button class="btn stop-btn" onclick="press('Stop')">STOP</button> <button class="btn reset-btn" onclick="press('Reset')">RESET</button>
@@ -164,7 +180,99 @@
     let rivalNumeroAttivo = "";
     let resetBarsTimer = null;
     let currentLapCum = {}, bestLapCum = {};
+    let lapHistory = [];
     let isSyncing = false;
+
+    /* 📊 RENDERING GRAFICO TREND GIRI (SVG ULTRA-LEGGERO) */
+    function aggiornaGraficoGiri() {
+      const svg = document.getElementById('lap-sparkline');
+      const titleEl = document.getElementById('chart-title');
+      const badgeEl = document.getElementById('chart-trend-badge');
+      if (!svg || !titleEl || !badgeEl) return;
+
+      if (lapHistory.length === 0) {
+        svg.innerHTML = '<line x1="6" y1="12" x2="314" y2="12" stroke="#222" stroke-width="1" stroke-dasharray="4 4" />';
+        titleEl.innerText = "TREND GIRI";
+        badgeEl.innerText = "IN ATTESA 1° GIRO";
+        badgeEl.style.color = "#666";
+        return;
+      }
+
+      // Mostra gli ultimi 10 giri completati per mantenere i punti ben distanziati
+      const dati = lapHistory.slice(-10);
+      const primoGiro = dati[0].lap;
+      const ultimoGiro = dati[dati.length - 1].lap;
+      titleEl.innerText = dati.length === 1 ? "TREND (G" + ultimoGiro + ")" : "TREND G" + primoGiro + "-G" + ultimoGiro;
+
+      if (dati.length === 1) {
+        const d0 = dati[0];
+        svg.innerHTML =
+          '<line x1="6" y1="14" x2="314" y2="14" stroke="#00e676" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="3 3" />' +
+          '<circle cx="160" cy="14" r="4" fill="#00e676" stroke="#000" stroke-width="1" />';
+        badgeEl.innerText = "G" + d0.lap + ": " + msToTime(d0.ms);
+        badgeEl.style.color = "#00e676";
+        return;
+      }
+
+      const times = dati.map(d => d.ms);
+      const minMs = Math.min(...times);
+      const maxMs = Math.max(...times);
+      const span = (maxMs - minMs) || 1;
+
+      const padX = 10;
+      const padY = 4;
+      const w = 320 - padX * 2;
+      const h = 24 - padY * 2;
+
+      // Y invertita rispetto ai ms: giro più veloce (minMs) in basso, giro più lento (maxMs) in alto
+      const pts = dati.map((d, idx) => {
+        const x = padX + (idx / (dati.length - 1)) * w;
+        const norm = (d.ms - minMs) / span;
+        const y = (padY + h) - norm * h;
+        return { x: Number(x.toFixed(1)), y: Number(y.toFixed(1)), ms: d.ms, lap: d.lap };
+      });
+
+      // Linea tratteggiata verde sul fondo = Best Lap dello stint
+      let markup = '<line x1="' + padX + '" y1="' + (padY + h) + '" x2="' + (320 - padX) + '" y2="' + (padY + h) + '" stroke="#00e676" stroke-width="1" stroke-opacity="0.35" stroke-dasharray="3 3" />';
+
+      // Segmenti colorati tra un giro e il successivo
+      for (let i = 1; i < pts.length; i++) {
+        const diffPrev = pts[i].ms - pts[i - 1].ms;
+        let segColor = "#00e676";
+        if (diffPrev > 250) {
+          segColor = "#ff1744"; // Forte peggioramento / gomme oltre il picco
+        } else if (diffPrev > 100) {
+          segColor = "#ff9100"; // Peggioramento > 1 decimo
+        } else if (diffPrev > 0) {
+          segColor = "#ffffff"; // Stabile entro 1 decimo
+        }
+        markup += '<line x1="' + pts[i - 1].x + '" y1="' + pts[i - 1].y + '" x2="' + pts[i].x + '" y2="' + pts[i].y + '" stroke="' + segColor + '" stroke-width="2.4" stroke-linecap="round" />';
+      }
+
+      // Pallini sui singoli giri
+      for (let i = 0; i < pts.length; i++) {
+        let dotColor = "#00e676";
+        if (i > 0) {
+          const diffPrev = pts[i].ms - pts[i - 1].ms;
+          if (diffPrev > 250) dotColor = "#ff1744";
+          else if (diffPrev > 100) dotColor = "#ff9100";
+          else if (diffPrev > 0) dotColor = "#ffffff";
+        }
+        const radius = (i === pts.length - 1) ? 4 : 2.8;
+        markup += '<circle cx="' + pts[i].x + '" cy="' + pts[i].y + '" r="' + radius + '" fill="' + dotColor + '" stroke="#000" stroke-width="1" />';
+      }
+
+      svg.innerHTML = markup;
+
+      // Badge destro: confronto immediato ultimo giro vs penultimo giro
+      const lastDiff = pts[pts.length - 1].ms - pts[pts.length - 2].ms;
+      const arrow = lastDiff < 0 ? "↘ " : (lastDiff > 0 ? "↗ " : "→ ");
+      badgeEl.innerText = arrow + formatDelta(lastDiff) + " VS G" + pts[pts.length - 2].lap;
+      if (lastDiff < 0) badgeEl.style.color = "#00e676";
+      else if (lastDiff <= 100) badgeEl.style.color = "#ffffff";
+      else if (lastDiff <= 250) badgeEl.style.color = "#ff9100";
+      else badgeEl.style.color = "#ff1744";
+    }
 
     /* 📡 GESTIONE STATO ONLINE/OFFLINE DEL PADDOCK */
     function aggiornaTitoloPaddockOnline(isOnline) {
@@ -189,7 +297,6 @@
         return;
       }
 
-      // Rimuove subito (OFFLINE) e verifica che il server Master sia effettivamente raggiungibile
       aggiornaTitoloPaddockOnline(true);
 
       if (ricaricaDati) {
@@ -205,14 +312,12 @@
           if (!data || data.error) return;
           localStorage.setItem('saved_paddockData_' + codiceScuderiaAttivo, JSON.stringify(data));
           aggiornaTitoloPaddockOnline(true);
-          // Aggiorna gli elenchi del Paddock solo se siamo fermi (tInizio === 0)
           if (tInizio === 0) {
             popolaPaddockDaDati(data, false, true);
           }
           sincronizzaCodaOffline(false);
         })
         .catch(() => {
-          // Se il telefono ha Wi-Fi ma senza uscita internet reale, ripristina (OFFLINE)
           aggiornaTitoloPaddockOnline(false);
         });
       }
@@ -401,6 +506,7 @@
     };
 
     window.addEventListener('DOMContentLoaded', () => {
+      aggiornaGraficoGiri();
       aggiornaBarraSync();
       let savedCod = localStorage.getItem('saved_codiceScuderia');
       let savedTime = localStorage.getItem('saved_loginTime');
@@ -477,7 +583,6 @@
       let cached = localStorage.getItem('saved_paddockData_' + cod);
       if (cached) {
         popolaPaddockDaDati(JSON.parse(cached), true, false);
-        // Se l'iPhone si è appena svegliato e la rete si aggancia subito dopo, ricontrolla automaticamente
         setTimeout(() => {
           if (navigator.onLine) verificaConnessioneERipulisciPaddock(true);
         }, 1500);
@@ -601,9 +706,10 @@
 
       if (tipo === 'Home') {
         tInizio = 0; tUltimo = 0; splitCount = 0; lapCount = 0; tRivalInizio = 0; tRivalUltimo = 0;
-        currentLapCum = {}; bestLapCum = {}; localRecords = {};
+        currentLapCum = {}; bestLapCum = {}; localRecords = {}; lapHistory = [];
         document.getElementById('lap-counter').innerText = "GIRO 0";
         document.getElementById('sub-info').innerText = navigator.onLine ? "PRONTO" : "MODALITÀ OFFLINE";
+        aggiornaGraficoGiri();
         resetDeltaDisplay();
         resetSectorBars();
         resetRivalUI();
@@ -625,12 +731,13 @@
       }
       if (tipo === 'Reset') {
         if (!confirm("Azzerare cronometro sul telefono?")) return;
-        tInizio = 0; tUltimo = 0; splitCount = 0; lapCount = 0; localRecords = {};
+        tInizio = 0; tUltimo = 0; splitCount = 0; lapCount = 0; localRecords = {}; lapHistory = [];
         currentLapCum = {}; bestLapCum = {};
         document.getElementById('lap-counter').innerText = "GIRO 0";
         document.getElementById('main-time').innerText = "00:00.000"; 
         document.getElementById('main-time').style.color = "#ffffff"; 
         document.getElementById('intertempo').innerHTML = "--:--.---"; 
+        aggiornaGraficoGiri();
         resetDeltaDisplay();
         resetSectorBars();
         resetRivalUI();
@@ -794,6 +901,10 @@
 
         resetBarsTimer = setTimeout(resetSectorBars, 1200);
         
+        // Aggiorna lo storico grafico con il giro appena concluso prima di passare al successivo
+        lapHistory.push({ lap: lapCount, ms: durata });
+        aggiornaGraficoGiri();
+
         lapCount++;
         document.getElementById('lap-counter').innerText = "GIRO " + lapCount;
         
