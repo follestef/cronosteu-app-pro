@@ -5,12 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>CronoPro</title>
-  <link rel="manifest" href="manifest.json?v=5">
+  <link rel="manifest" href="manifest.json?v=6">
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CronoPro">
-  <link rel="apple-touch-icon" href="icon-512.png?v=5">
+  <link rel="apple-touch-icon" href="icon-512.png?v=6">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #000; color: #fff; margin: 0; padding: 8px 10px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
@@ -91,12 +91,14 @@
     #an-sync-label { font-size: 10px; color: #888; font-family: monospace; text-transform: uppercase; }
     .an-refresh-btn { background: #1e1e1e; color: #00e676; border: 1px solid #00e676; border-radius: 10px; padding: 8px 11px; font-weight: 900; font-size: 12px; cursor: pointer; }
 
-    .an-filters { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 6px; margin-bottom: 8px; }
-    .an-filter-box { background: #141414; border: 1px solid #333; border-radius: 10px; padding: 5px 7px; display: flex; flex-direction: column; }
+    .an-filters-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+    .an-filters-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+    .an-filter-box { background: #141414; border: 1px solid #333; border-radius: 9px; padding: 4px 6px; display: flex; flex-direction: column; }
+    .an-filter-box.highlight-box { border-color: #00838f; background: #0b191c; }
     .an-filter-box label { font-size: 9px; color: #aaa; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
-    .an-filter-box select { background: #000; color: #fff; border: 1px solid #444; border-radius: 7px; padding: 5px 4px; font-size: 12px; font-weight: 900; text-transform: uppercase; width: 100%; }
+    .an-filter-box select { background: #000; color: #fff; border: 1px solid #444; border-radius: 6px; padding: 4px 3px; font-size: 11px; font-weight: 900; text-transform: uppercase; width: 100%; }
 
-    .an-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 8px; }
+    .an-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 8px; margin-top: 2px; }
     .an-kpi-card { background: #111; border: 1px solid #2b2b2b; border-radius: 11px; padding: 7px 9px; text-align: center; }
     .an-kpi-label { font-size: 10px; color: #999; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
     .an-kpi-val { font-size: 20px; font-weight: 900; font-family: monospace; margin: 2px 0; }
@@ -185,11 +187,40 @@
       <button class="an-refresh-btn" onclick="caricaDatiAnalisi(true)"><i class="fa-solid fa-arrows-rotate"></i></button>
     </div>
 
-    <div class="an-filters">
-      <div class="an-filter-box">
-        <label>Pilota</label>
-        <select id="an-driver-select" onchange="aggiornaMenuSessioniAnalisi()"></select>
+    <!-- RIGA 1 FILTRI: FONTE / CATEGORIA / PISTA -->
+    <div class="an-filters-3">
+      <div class="an-filter-box highlight-box">
+        <label>Fonte Dati</label>
+        <select id="an-fonte-select" onchange="onCambioFiltroAnalisi('fonte')">
+          <option value="LIVE">LIVE</option>
+          <option value="ARCHIVIO">ARCHIVIO</option>
+          <option value="__ALL__">TUTTI</option>
+        </select>
       </div>
+      <div class="an-filter-box">
+        <label>Categoria</label>
+        <select id="an-cat-select" onchange="onCambioFiltroAnalisi('cat')"></select>
+      </div>
+      <div class="an-filter-box">
+        <label>Pista</label>
+        <select id="an-track-select" onchange="onCambioFiltroAnalisi('track')"></select>
+      </div>
+    </div>
+
+    <!-- RIGA 2 FILTRI: DATA / PILOTA -->
+    <div class="an-filters-2">
+      <div class="an-filter-box">
+        <label>Data Test / Gara</label>
+        <select id="an-date-select" onchange="onCambioFiltroAnalisi('date')"></select>
+      </div>
+      <div class="an-filter-box highlight-box">
+        <label>Pilota</label>
+        <select id="an-driver-select" onchange="onCambioFiltroAnalisi('driver')"></select>
+      </div>
+    </div>
+
+    <!-- RIGA 3 FILTRI: TURNO A / CONFRONTA TURNO B -->
+    <div class="an-filters-2">
       <div class="an-filter-box">
         <label>Turno A (Principale)</label>
         <select id="an-sess-a-select" onchange="renderizzaAnalisi()"></select>
@@ -1108,8 +1139,50 @@
     }
 
     /* ===================================================================== */
-    /* 📊 LOGICA ANALISI TELEMETRIA & CONFRONTO TURNI A vs B SU IPHONE       */
+    /* 📊 LOGICA ANALISI TELEMETRIA CON FILTRI A CASCATA & CONFRONTO A vs B  */
     /* ===================================================================== */
+    function estraiGiornoData(rawData) {
+      if (!rawData) return "SENZA DATA";
+      let primoPezzo = String(rawData).trim().split(" ")[0];
+      if (!primoPezzo) return "SENZA DATA";
+      // Se formato ISO yyyy-mm-dd, converte in dd/mm/yyyy
+      if (/^\d{4}-\d{2}-\d{2}$/.test(primoPezzo)) {
+        let p = primoPezzo.split("-");
+        return p[2] + "/" + p[1] + "/" + p[0];
+      }
+      return primoPezzo;
+    }
+
+    function confrontaDateDesc(a, b) {
+      if (a === b) return 0;
+      if (a === "SENZA DATA") return 1;
+      if (b === "SENZA DATA") return -1;
+      const toNum = (str) => {
+        let parts = str.split("/");
+        if (parts.length === 3) {
+          return (parseInt(parts[2], 10) || 0) * 10000 + (parseInt(parts[1], 10) || 0) * 100 + (parseInt(parts[0], 10) || 0);
+        }
+        return 0;
+      };
+      return toNum(b) - toNum(a);
+    }
+
+    function normalizzaDatasetAnalisi(rawList) {
+      return (rawList || []).map(g => ({
+        fonte: String(g.fonte || "LIVE").toUpperCase().trim(),
+        data: String(g.data || "").trim(),
+        dataGiorno: estraiGiornoData(g.data),
+        pilota: String(g.pilota || "").toUpperCase().trim(),
+        sessione: String(g.sessione || "P1").toUpperCase().trim(),
+        categoria: String(g.categoria || "GENERALE").toUpperCase().trim() || "GENERALE",
+        pista: String(g.pista || "PISTA").toUpperCase().trim() || "PISTA",
+        meccanico: String(g.meccanico || "").toUpperCase().trim(),
+        nota: String(g.nota || "").trim(),
+        lapMs: Number(g.lapMs) || 0,
+        splits: Array.isArray(g.splits) ? g.splits : [0, 0, 0, 0, 0, 0, 0, 0]
+      })).filter(g => g.pilota && g.lapMs > 0);
+    }
+
     function apriAnalisiOverlay() {
       if (!codiceScuderiaAttivo) return alert("Effettua prima l'accesso con il Codice Scuderia!");
       document.getElementById('mechanic-overlay').style.display = 'none';
@@ -1126,14 +1199,13 @@
       const syncLabel = document.getElementById('an-sync-label');
       const cacheKey = 'cronopro_analisi_cache_' + codiceScuderiaAttivo;
 
-      // Carica subito eventuale cache locale per risposta istantanea al muretto
       const cachedRaw = localStorage.getItem(cacheKey);
       if (cachedRaw && !forzaRete) {
         try {
           const parsed = JSON.parse(cachedRaw);
-          analisiDataset = parsed.giri || [];
+          analisiDataset = normalizzaDatasetAnalisi(parsed.giri);
           syncLabel.innerText = "CACHE (" + (parsed.aggiornato || "--:--") + ")";
-          popolaFiltriAnalisi();
+          onCambioFiltroAnalisi('init');
         } catch (e) {}
       }
 
@@ -1156,69 +1228,166 @@
           syncLabel.innerText = "ERRORE: " + data.error;
           return;
         }
-        analisiDataset = data.giri || [];
+        analisiDataset = normalizzaDatasetAnalisi(data.giri);
         localStorage.setItem(cacheKey, JSON.stringify({ aggiornato: data.aggiornato, giri: analisiDataset }));
         syncLabel.innerText = "LIVE AGGIORNATO " + (data.aggiornato || "");
-        popolaFiltriAnalisi();
+        onCambioFiltroAnalisi(forzaRete ? 'refresh' : 'init');
       })
       .catch(() => {
         syncLabel.innerText = "OFFLINE (CACHE)";
       });
     }
 
-    function popolaFiltriAnalisi() {
+    function onCambioFiltroAnalisi(trigger) {
+      const fonteSel = document.getElementById('an-fonte-select');
+      const catSel = document.getElementById('an-cat-select');
+      const trackSel = document.getElementById('an-track-select');
+      const dateSel = document.getElementById('an-date-select');
       const drvSel = document.getElementById('an-driver-select');
-      const pilotaPaddock = (document.getElementById('driver-select').value || localStorage.getItem('saved_driver') || "").toUpperCase().trim();
-      const prevPilota = drvSel.value || pilotaPaddock;
+      const sessASel = document.getElementById('an-sess-a-select');
+      const sessBSel = document.getElementById('an-sess-b-select');
 
-      const pilotiSet = [...new Set(analisiDataset.map(g => g.pilota).filter(Boolean))].sort();
-      drvSel.innerHTML = "";
-
-      if (pilotiSet.length === 0) {
-        drvSel.add(new Option("NESSUN DATO", ""));
-        document.getElementById('an-sess-a-select').innerHTML = '<option value="">--</option>';
-        document.getElementById('an-sess-b-select').innerHTML = '<option value="">NESSUNO</option>';
+      if (analisiDataset.length === 0) {
+        catSel.innerHTML = '<option value="__ALL__">TUTTE</option>';
+        trackSel.innerHTML = '<option value="__ALL__">TUTTE</option>';
+        dateSel.innerHTML = '<option value="__ALL__">TUTTE</option>';
+        drvSel.innerHTML = '<option value="">NESSUNO</option>';
+        sessASel.innerHTML = '<option value="">--</option>';
+        sessBSel.innerHTML = '<option value="">NESSUNO</option>';
         document.getElementById('an-lap-list').innerHTML = '<div style="text-align:center; color:#888; padding:20px;">Nessun giro registrato su CRONOMETRO o ARCHIVIO.</div>';
         return;
       }
 
-      pilotiSet.forEach(p => drvSel.add(new Option(p, p)));
-      if (prevPilota && pilotiSet.indexOf(prevPilota) !== -1) {
-        drvSel.value = prevPilota;
+      // 1. LIVELLO FONTE (LIVE / ARCHIVIO / TUTTI)
+      const hasLive = analisiDataset.some(g => g.fonte === "LIVE");
+      const hasArch = analisiDataset.some(g => g.fonte === "ARCHIVIO");
+      if (trigger === 'init') {
+        if (hasLive) fonteSel.value = "LIVE";
+        else if (hasArch) fonteSel.value = "ARCHIVIO";
+        else fonteSel.value = "__ALL__";
       }
+      const fonteVal = fonteSel.value;
+      const step1 = analisiDataset.filter(g => fonteVal === "__ALL__" || g.fonte === fonteVal);
 
-      aggiornaMenuSessioniAnalisi();
-    }
+      // 2. LIVELLO CATEGORIA
+      const prevCat = catSel.value;
+      const paddockCat = (document.getElementById('category-select').value || localStorage.getItem('saved_category') || "").toUpperCase().trim();
+      const catList = [...new Set(step1.map(g => g.categoria))].sort();
+      catSel.innerHTML = "";
+      catList.forEach(c => catSel.add(new Option(c, c)));
+      catSel.add(new Option("TUTTE", "__ALL__"));
 
-    function aggiornaMenuSessioniAnalisi() {
-      const pilota = document.getElementById('an-driver-select').value;
-      const sessASel = document.getElementById('an-sess-a-select');
-      const sessBSel = document.getElementById('an-sess-b-select');
-      const sessPaddock = (document.getElementById('session-select').value || localStorage.getItem('saved_session') || "").toUpperCase().trim();
+      if (trigger !== 'init' && prevCat && [...catSel.options].some(o => o.value === prevCat)) {
+        catSel.value = prevCat;
+      } else if (paddockCat && catList.indexOf(paddockCat) !== -1) {
+        catSel.value = paddockCat;
+      } else if (catList.length > 0) {
+        catSel.value = catList[0];
+      } else {
+        catSel.value = "__ALL__";
+      }
+      const catVal = catSel.value;
+      const step2 = step1.filter(g => catVal === "__ALL__" || g.categoria === catVal);
 
+      // 3. LIVELLO PISTA
+      const prevTrack = trackSel.value;
+      const paddockTrack = (document.getElementById('track-select').value || localStorage.getItem('saved_track') || "").toUpperCase().trim();
+      const trackList = [...new Set(step2.map(g => g.pista))].sort();
+      trackSel.innerHTML = "";
+      trackList.forEach(t => trackSel.add(new Option(t, t)));
+      trackSel.add(new Option("TUTTE", "__ALL__"));
+
+      if (trigger !== 'init' && trigger !== 'fonte' && trigger !== 'cat' && prevTrack && [...trackSel.options].some(o => o.value === prevTrack)) {
+        trackSel.value = prevTrack;
+      } else if (paddockTrack && trackList.indexOf(paddockTrack) !== -1) {
+        trackSel.value = paddockTrack;
+      } else if (trackList.length > 0) {
+        trackSel.value = trackList[0];
+      } else {
+        trackSel.value = "__ALL__";
+      }
+      const trackVal = trackSel.value;
+      const step3 = step2.filter(g => trackVal === "__ALL__" || g.pista === trackVal);
+
+      // 4. LIVELLO DATA (ordinata dalla più recente alla più vecchia)
+      const prevDate = dateSel.value;
+      const dateList = [...new Set(step3.map(g => g.dataGiorno))].sort(confrontaDateDesc);
+      dateSel.innerHTML = "";
+      dateList.forEach(d => dateSel.add(new Option(d, d)));
+      dateSel.add(new Option("TUTTE LE DATE", "__ALL__"));
+
+      if ((trigger === 'date' || trigger === 'driver' || trigger === 'refresh') && prevDate && [...dateSel.options].some(o => o.value === prevDate)) {
+        dateSel.value = prevDate;
+      } else if (dateList.length > 0) {
+        dateSel.value = dateList[0]; // Ultima giornata di test/gara
+      } else {
+        dateSel.value = "__ALL__";
+      }
+      const dateVal = dateSel.value;
+      const step4 = step3.filter(g => dateVal === "__ALL__" || g.dataGiorno === dateVal);
+
+      // 5. LIVELLO PILOTA
+      const prevDrv = drvSel.value;
+      const paddockDrv = (document.getElementById('driver-select').value || localStorage.getItem('saved_driver') || "").toUpperCase().trim();
+      const drvList = [...new Set(step4.map(g => g.pilota))].sort();
+      drvSel.innerHTML = "";
+      drvList.forEach(p => drvSel.add(new Option(p, p)));
+
+      if (prevDrv && drvList.indexOf(prevDrv) !== -1) {
+        drvSel.value = prevDrv;
+      } else if (paddockDrv && drvList.indexOf(paddockDrv) !== -1) {
+        drvSel.value = paddockDrv;
+      } else if (drvList.length > 0) {
+        drvSel.value = drvList[0];
+      }
+      const pilotaVal = drvSel.value;
+      const step5 = step4.filter(g => g.pilota === pilotaVal);
+
+      // 6. LIVELLO TURNO A & TURNO B
       const prevA = sessASel.value;
       const prevB = sessBSel.value;
+      const paddockSess = (document.getElementById('session-select').value || localStorage.getItem('saved_session') || "").toUpperCase().trim();
 
-      const giriPilota = analisiDataset.filter(g => g.pilota === pilota);
-      const sessioni = [...new Set(giriPilota.map(g => g.sessione).filter(Boolean))];
-
+      const sessioniGiorno = [...new Set(step5.map(g => g.sessione))];
       sessASel.innerHTML = "";
-      sessBSel.innerHTML = '<option value="">NESSUNO</option>';
-
-      sessioni.forEach(s => {
-        sessASel.add(new Option(s, s));
-        sessBSel.add(new Option(s, s));
-      });
-      if (sessioni.length > 1) {
+      sessioniGiorno.forEach(s => sessASel.add(new Option(s, s)));
+      if (sessioniGiorno.length > 1) {
         sessASel.add(new Option("TUTTE", "__ALL__"));
       }
 
       if (prevA && [...sessASel.options].some(o => o.value === prevA)) {
         sessASel.value = prevA;
-      } else if (sessPaddock && sessioni.indexOf(sessPaddock) !== -1) {
-        sessASel.value = sessPaddock;
-      } else if (sessioni.length > 0) {
-        sessASel.value = sessioni[sessioni.length - 1]; // Ultima sessione disputata
+      } else if (paddockSess && sessioniGiorno.indexOf(paddockSess) !== -1) {
+        sessASel.value = paddockSess;
+      } else if (sessioniGiorno.length > 0) {
+        sessASel.value = sessioniGiorno[sessioniGiorno.length - 1];
+      }
+
+      // Turno B: propone prima i turni dello stesso giorno, poi eventuali turni di altre date (stesso pilota/categoria/pista)
+      sessBSel.innerHTML = '<option value="">NESSUNO</option>';
+      sessioniGiorno.forEach(s => {
+        sessBSel.add(new Option(s, s));
+      });
+
+      if (dateVal !== "__ALL__") {
+        const altriTurniAltreDate = [];
+        const vistiAltri = {};
+        analisiDataset.forEach(g => {
+          if (g.pilota === pilotaVal &&
+              (catVal === "__ALL__" || g.categoria === catVal) &&
+              (trackVal === "__ALL__" || g.pista === trackVal) &&
+              g.dataGiorno !== dateVal) {
+            let key = g.sessione + "||" + g.dataGiorno;
+            if (!vistiAltri[key]) {
+              vistiAltri[key] = true;
+              altriTurniAltreDate.push({ val: key, label: g.sessione + " (" + g.dataGiorno + ")", dataGiorno: g.dataGiorno });
+            }
+          }
+        });
+        altriTurniAltreDate.sort((a, b) => confrontaDateDesc(a.dataGiorno, b.dataGiorno));
+        altriTurniAltreDate.forEach(item => {
+          sessBSel.add(new Option(item.label, item.val));
+        });
       }
 
       if (prevB && [...sessBSel.options].some(o => o.value === prevB)) {
@@ -1247,7 +1416,7 @@
           }
         }
         if (g.nota && noteSet.indexOf(g.nota) === -1) noteSet.push(g.nota);
-        let metaStr = [g.pista, g.categoria, g.meccanico ? "MEC: " + g.meccanico : ""].filter(Boolean).join(" • ");
+        let metaStr = [g.dataGiorno, g.pista, g.categoria, g.meccanico ? "MEC: " + g.meccanico : ""].filter(Boolean).join(" • ");
         if (metaStr && metaSet.indexOf(metaStr) === -1) metaSet.push(metaStr);
       });
 
@@ -1281,12 +1450,49 @@
     }
 
     function renderizzaAnalisi() {
+      const fonteVal = document.getElementById('an-fonte-select').value;
+      const catVal = document.getElementById('an-cat-select').value;
+      const trackVal = document.getElementById('an-track-select').value;
+      const dateVal = document.getElementById('an-date-select').value;
       const pilota = document.getElementById('an-driver-select').value;
       const sessA = document.getElementById('an-sess-a-select').value;
       const sessB = document.getElementById('an-sess-b-select').value;
 
-      const giriA = analisiDataset.filter(g => g.pilota === pilota && (sessA === "__ALL__" || g.sessione === sessA));
-      const giriB = sessB ? analisiDataset.filter(g => g.pilota === pilota && g.sessione === sessB) : [];
+      const giriA = analisiDataset.filter(g =>
+        (fonteVal === "__ALL__" || g.fonte === fonteVal) &&
+        (catVal === "__ALL__" || g.categoria === catVal) &&
+        (trackVal === "__ALL__" || g.pista === trackVal) &&
+        (dateVal === "__ALL__" || g.dataGiorno === dateVal) &&
+        g.pilota === pilota &&
+        (sessA === "__ALL__" || g.sessione === sessA)
+      );
+
+      let giriB = [];
+      let sessBLabel = sessB;
+      if (sessB) {
+        if (sessB.indexOf("||") !== -1) {
+          let parts = sessB.split("||");
+          let sBName = parts[0];
+          let sBDate = parts[1];
+          sessBLabel = sBName + " (" + sBDate + ")";
+          giriB = analisiDataset.filter(g =>
+            (catVal === "__ALL__" || g.categoria === catVal) &&
+            (trackVal === "__ALL__" || g.pista === trackVal) &&
+            g.dataGiorno === sBDate &&
+            g.pilota === pilota &&
+            g.sessione === sBName
+          );
+        } else {
+          giriB = analisiDataset.filter(g =>
+            (fonteVal === "__ALL__" || g.fonte === fonteVal) &&
+            (catVal === "__ALL__" || g.categoria === catVal) &&
+            (trackVal === "__ALL__" || g.pista === trackVal) &&
+            (dateVal === "__ALL__" || g.dataGiorno === dateVal) &&
+            g.pilota === pilota &&
+            g.sessione === sessB
+          );
+        }
+      }
 
       const mA = calcolaMetricheTurno(giriA);
       const mB = calcolaMetricheTurno(giriB);
@@ -1296,7 +1502,9 @@
         document.getElementById('an-ideal-val').innerText = "--:--.---";
         document.getElementById('an-gap-ideal-val').innerText = "--.---";
         document.getElementById('an-avg-val').innerText = "--:--.---";
-        document.getElementById('an-lap-list').innerHTML = '<div style="text-align:center; color:#888; padding:20px;">Nessun giro trovato per questa selezione.</div>';
+        document.getElementById('an-laps-count').innerText = "0 GIRI";
+        document.getElementById('an-consistency-val').innerText = "COSTANZA: --";
+        document.getElementById('an-lap-list').innerHTML = '<div style="text-align:center; color:#888; padding:20px;">Nessun giro trovato per i filtri selezionati.</div>';
         return;
       }
 
@@ -1313,11 +1521,11 @@
       const idealDeltaEl = document.getElementById('an-ideal-delta');
       if (mB) {
         const dBest = mA.bestMs - mB.bestMs;
-        bestDeltaEl.innerText = formatDelta(dBest) + " VS " + sessB;
+        bestDeltaEl.innerText = formatDelta(dBest) + " VS " + sessBLabel;
         bestDeltaEl.style.color = dBest < 0 ? "#00e676" : (dBest > 0 ? "#ff9100" : "#fff");
 
         const dIdeal = mA.idealMs - mB.idealMs;
-        idealDeltaEl.innerText = formatDelta(dIdeal) + " VS " + sessB;
+        idealDeltaEl.innerText = formatDelta(dIdeal) + " VS " + sessBLabel;
         idealDeltaEl.style.color = dIdeal < 0 ? "#00e676" : (dIdeal > 0 ? "#ff9100" : "#fff");
       } else {
         bestDeltaEl.innerText = "CONFRONTO B NON ATTIVO";
@@ -1333,7 +1541,7 @@
       }
       noteHtml += '<div class="an-note-row"><strong>NOTE A:</strong> ' + (mA.note.length ? mA.note.join(" • ") : "Nessuna nota vocale") + '</div>';
       if (mB) {
-        noteHtml += '<div class="an-note-row" style="color:#80d8ff; margin-top:3px;"><strong>NOTE B (' + sessB + '):</strong> ' + (mB.note.length ? mB.note.join(" • ") : "Nessuna nota vocale") + '</div>';
+        noteHtml += '<div class="an-note-row" style="color:#80d8ff; margin-top:3px;"><strong>NOTE B (' + sessBLabel + '):</strong> ' + (mB.note.length ? mB.note.join(" • ") : "Nessuna nota vocale") + '</div>';
       }
       document.getElementById('an-notes-content').innerHTML = noteHtml;
 
@@ -1344,8 +1552,8 @@
       thB.style.display = mB ? "" : "none";
       thDelta.style.display = mB ? "" : "none";
       if (mB) {
-        thB.innerText = sessB;
-        secBadge.innerText = (sessA === "__ALL__" ? "TUTTE" : sessA) + " VS " + sessB;
+        thB.innerText = sessBLabel;
+        secBadge.innerText = (sessA === "__ALL__" ? "TUTTE" : sessA) + " VS " + sessBLabel;
         secBadge.style.color = "#ffeb3b";
       } else {
         secBadge.innerText = "TURNO SINGOLO";
@@ -1381,7 +1589,7 @@
       document.getElementById('an-sec-tbody').innerHTML = tbodyHtml;
 
       // 4. GRAFICO SVG COMPLETO DELLA SESSIONE
-      renderizzaGraficoAnalisi(mA, mB, sessB);
+      renderizzaGraficoAnalisi(mA, mB, sessBLabel);
 
       // 5. LISTA GIRI ESPANDIBILE
       let listHtml = "";
@@ -1404,7 +1612,7 @@
         listHtml +=
           '<div class="an-lap-item ' + (isBest ? 'best-lap-row' : '') + '" onclick="this.querySelector(\'.an-lap-splits\').classList.toggle(\'open\')">' +
             '<div class="an-lap-main">' +
-              '<div><span class="an-lap-num">G' + (idx + 1) + '</span><span class="an-lap-badge">' + g.sessione + ' • ' + g.fonte + '</span></div>' +
+              '<div><span class="an-lap-num">G' + (idx + 1) + '</span><span class="an-lap-badge">' + g.sessione + ' • ' + g.dataGiorno + '</span></div>' +
               '<div class="an-lap-time" style="color:' + (isBest ? '#00e676' : '#fff') + ';">' + msToTime(g.lapMs) + '</div>' +
               '<div class="an-lap-gap" style="color:' + gapColor + ';">' + gapStr + '</div>' +
             '</div>' +
@@ -1414,7 +1622,7 @@
       document.getElementById('an-lap-list').innerHTML = listHtml;
     }
 
-    function renderizzaGraficoAnalisi(mA, mB, sessB) {
+    function renderizzaGraficoAnalisi(mA, mB, sessBLabel) {
       const svg = document.getElementById('an-chart-svg');
       const legend = document.getElementById('an-chart-legend');
       const laps = mA.giri;
@@ -1444,24 +1652,21 @@
 
       let markup = "";
 
-      // Linea riferimento Best Turno B (se attivo)
       if (mB) {
         const yB = Number(((padY + h) - ((mB.bestMs - minMs) / span) * h).toFixed(1));
         markup += '<line x1="' + padX + '" y1="' + yB + '" x2="' + (340 - padX) + '" y2="' + yB + '" stroke="#00e5ff" stroke-width="1.2" stroke-dasharray="4 3" />';
-        legend.innerText = "VERDE = BEST A | AZZURRO = BEST " + sessB;
+        legend.innerText = "VERDE = BEST A | AZZURRO = BEST " + sessBLabel;
         legend.style.color = "#00e5ff";
       } else {
         legend.innerText = "VERDE = BEST A (" + msToTime(mA.bestMs) + ")";
         legend.style.color = "#00e676";
       }
 
-      // Linea tracciato giro su giro
       if (pts.length > 1) {
         let polyPts = pts.map(p => p.x + "," + p.y).join(" ");
         markup += '<polyline fill="none" stroke="#ffeb3b" stroke-width="2" points="' + polyPts + '" />';
       }
 
-      // Punti giri
       pts.forEach(p => {
         const isBest = p.ms === mA.bestMs;
         const fill = isBest ? "#00e676" : "#ffffff";
