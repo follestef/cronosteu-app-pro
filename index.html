@@ -5,12 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>CronoPro</title>
-  <link rel="manifest" href="manifest.json?v=4">
+  <link rel="manifest" href="manifest.json?v=5">
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CronoPro">
-  <link rel="apple-touch-icon" href="icon-512.png?v=4">
+  <link rel="apple-touch-icon" href="icon-512.png?v=5">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #000; color: #fff; margin: 0; padding: 8px 10px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
@@ -54,27 +54,79 @@
     #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 6000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
     .login-input { width: 100%; max-width: 320px; height: 50px; background: #222; border: 2px solid #ff9800; border-radius: 15px; color: #fff; text-align: center; font-size: 1.3rem; font-weight: bold; text-transform: uppercase; margin-bottom: 15px; }
 
-    #mechanic-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; background: black; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; box-sizing: border-box; display: none; }
-    .team-logo { max-width: 110px; max-height: 90px; border-radius: 15px; padding: 5px; margin-bottom: 8px; object-fit: contain; }
-    #mechanic-overlay h2 { color: #ff9800; font-size: 1.6rem; margin: 0 0 8px 0; text-transform: uppercase; font-weight: 900; }
-    .overlay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 380px; margin-bottom: 10px; }
-    .square-box { height: 92px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem; border: none; cursor: pointer; position: relative; color: white; text-transform: uppercase; }
-    .square-box i { font-size: 1.7rem; margin-bottom: 4px; } .square-box select { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+    #mechanic-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; background: black; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 15px; box-sizing: border-box; display: none; }
+    .team-logo { max-width: 100px; max-height: 76px; border-radius: 14px; padding: 4px; margin-bottom: 6px; object-fit: contain; }
+    #mechanic-overlay h2 { color: #ff9800; font-size: 1.45rem; margin: 0 0 6px 0; text-transform: uppercase; font-weight: 900; }
+    .overlay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 380px; margin-bottom: 8px; }
+    .square-box { height: 82px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; font-size: 0.82rem; border: none; cursor: pointer; position: relative; color: white; text-transform: uppercase; }
+    .square-box i { font-size: 1.55rem; margin-bottom: 4px; } .square-box select { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
     .bg-blue { background: #3498db; } .bg-orange { background: #e67e22; } .bg-green { background: #27ae60; } .bg-purple { background: #9b59b6; } .bg-red { background: #e74c3c; } .bg-yellow { background: #f1c40f; color: black !important; }
     
-    .wide-voice-bar { width: 100%; max-width: 380px; height: 50px; background: #222; border: 2px dashed #ff3d00; border-radius: 15px; display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer; margin-bottom: 10px; box-sizing: border-box; transition: all 0.3s ease; }
-    .wide-voice-bar i { font-size: 1.3rem; color: #ff3d00; }
+    .wide-voice-bar { width: 100%; max-width: 380px; height: 46px; background: #222; border: 2px dashed #ff3d00; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; margin-bottom: 8px; box-sizing: border-box; transition: all 0.3s ease; }
+    .wide-voice-bar i { font-size: 1.25rem; color: #ff3d00; }
     #voice-status { font-size: 12px; color: #fff; font-weight: bold; text-transform: uppercase; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .listening-active { background: #ff1744 !important; border: 2px solid #fff !important; animation: pulseBar 1.5s infinite; }
     .listening-active i, .listening-active #voice-status { color: #fff !important; }
     @keyframes pulseBar { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
 
-    .remote-sheet-bar { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 8px; width: 100%; max-width: 380px; margin-bottom: 10px; }
-    .btn-sheet-save { height: 46px; border-radius: 12px; background: #00897b; color: #fff; border: none; font-weight: 900; font-size: 11px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
-    .btn-sheet-both { height: 46px; border-radius: 12px; background: #1976d2; color: #fff; border: 1px solid #64b5f6; font-weight: 900; font-size: 11px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
-    .btn-sheet-clear { height: 46px; border-radius: 12px; background: #b71c1c; color: #fff; border: none; font-weight: 900; font-size: 11px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
-    
-    .btn-logout { position: absolute; top: 15px; right: 15px; background: #333; color: #ff5252; border: 1px solid #ff5252; border-radius: 10px; padding: 6px 12px; font-size: 11px; font-weight: bold; cursor: pointer; }
+    .remote-sheet-bar { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 8px; width: 100%; max-width: 380px; margin-bottom: 8px; }
+    .btn-sheet-save { height: 42px; border-radius: 12px; background: #00897b; color: #fff; border: none; font-weight: 900; font-size: 11px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .btn-sheet-both { height: 42px; border-radius: 12px; background: #1976d2; color: #fff; border: 1px solid #64b5f6; font-weight: 900; font-size: 11px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .btn-sheet-clear { height: 42px; border-radius: 12px; background: #b71c1c; color: #fff; border: none; font-weight: 900; font-size: 11px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+
+    .paddock-bottom-actions { display: grid; grid-template-columns: 1.55fr 1fr; gap: 10px; width: 100%; max-width: 380px; }
+    .btn-analisi-paddock { height: 54px; border-radius: 15px; background: #00b0ff; color: #000; border: none; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; box-shadow: 0 4px 0 #0081cb; }
+    .btn-analisi-paddock i { font-size: 1.25rem; }
+
+    .btn-logout { position: absolute; top: 12px; right: 12px; background: #333; color: #ff5252; border: 1px solid #ff5252; border-radius: 10px; padding: 6px 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
+
+    /* ===================================================================== */
+    /* 📊 SCHERMATA ANALISI MOBILE & CONFRONTO TURNI A vs B                  */
+    /* ===================================================================== */
+    #analysis-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5500; background: #050505; display: none; flex-direction: column; padding: 10px; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .an-topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .an-back-btn { background: #ff9800; color: #000; border: none; border-radius: 10px; padding: 8px 12px; font-weight: 900; font-size: 12px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .an-title-box { text-align: center; flex: 1; }
+    .an-title-box h3 { margin: 0; font-size: 15px; color: #00e5ff; font-weight: 900; letter-spacing: 0.8px; text-transform: uppercase; }
+    #an-sync-label { font-size: 10px; color: #888; font-family: monospace; text-transform: uppercase; }
+    .an-refresh-btn { background: #1e1e1e; color: #00e676; border: 1px solid #00e676; border-radius: 10px; padding: 8px 11px; font-weight: 900; font-size: 12px; cursor: pointer; }
+
+    .an-filters { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+    .an-filter-box { background: #141414; border: 1px solid #333; border-radius: 10px; padding: 5px 7px; display: flex; flex-direction: column; }
+    .an-filter-box label { font-size: 9px; color: #aaa; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
+    .an-filter-box select { background: #000; color: #fff; border: 1px solid #444; border-radius: 7px; padding: 5px 4px; font-size: 12px; font-weight: 900; text-transform: uppercase; width: 100%; }
+
+    .an-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 8px; }
+    .an-kpi-card { background: #111; border: 1px solid #2b2b2b; border-radius: 11px; padding: 7px 9px; text-align: center; }
+    .an-kpi-label { font-size: 10px; color: #999; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
+    .an-kpi-val { font-size: 20px; font-weight: 900; font-family: monospace; margin: 2px 0; }
+    .an-kpi-sub { font-size: 11px; font-family: monospace; font-weight: bold; color: #888; }
+
+    .an-notes-box { background: #14120a; border: 1px solid #4a3b10; border-radius: 10px; padding: 7px 10px; margin-bottom: 8px; font-size: 11px; line-height: 1.35; }
+    .an-notes-title { font-size: 10px; color: #ffeb3b; font-weight: 900; text-transform: uppercase; margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
+    .an-note-row { color: #eee; margin-bottom: 2px; }
+
+    .an-section-card { background: #0f0f0f; border: 1px solid #262626; border-radius: 11px; padding: 8px; margin-bottom: 8px; }
+    .an-section-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 900; color: #00e5ff; text-transform: uppercase; margin-bottom: 6px; }
+    #an-chart-svg { width: 100%; height: 86px; display: block; background: #070707; border-radius: 8px; border: 1px solid #1e1e1e; }
+
+    .an-sec-table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 12px; }
+    .an-sec-table th { font-size: 10px; color: #999; text-align: center; padding: 4px 2px; border-bottom: 1px solid #2a2a2a; text-transform: uppercase; }
+    .an-sec-table td { padding: 5px 3px; text-align: center; border-bottom: 1px solid #1c1c1c; font-weight: bold; }
+    .an-sec-table tr:last-child td { border-bottom: none; }
+
+    .an-lap-list { display: flex; flex-direction: column; gap: 5px; padding-bottom: 18px; }
+    .an-lap-item { background: #121212; border: 1px solid #2a2a2a; border-radius: 10px; padding: 7px 10px; cursor: pointer; }
+    .an-lap-item.best-lap-row { border-color: #00e676; background: #0b1c12; }
+    .an-lap-main { display: flex; justify-content: space-between; align-items: center; font-family: monospace; }
+    .an-lap-num { font-size: 12px; font-weight: 900; color: #aaa; }
+    .an-lap-time { font-size: 16px; font-weight: 900; color: #fff; }
+    .an-lap-gap { font-size: 12px; font-weight: 900; }
+    .an-lap-badge { font-size: 9px; padding: 2px 5px; border-radius: 5px; background: #222; color: #aaa; font-weight: 900; margin-left: 5px; }
+    .an-lap-splits { display: none; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #333; grid-template-columns: repeat(4, 1fr); gap: 4px; font-family: monospace; font-size: 11px; }
+    .an-lap-splits.open { display: grid; }
+    .an-split-pill { background: #1a1a1a; border-radius: 6px; padding: 3px 4px; text-align: center; color: #ddd; }
+    .an-split-pill span { color: #00e5ff; font-weight: 900; }
   </style>
 </head>
 <body>
@@ -102,7 +154,7 @@
       <div class="square-box bg-orange"><i class="fa-solid fa-tags"></i><span id="label-category">CATEGORIA</span><select id="category-select" onchange="updateOverlayLabel('category')"><option value="" disabled selected>SCEGLI...</option></select></div>
       <div class="square-box bg-green"><i class="fa-solid fa-map-marked-alt"></i><span id="label-track">PISTA</span><select id="track-select" onchange="updateOverlayLabel('track')"><option value="" disabled selected>SCEGLI...</option></select></div>
       <div class="square-box bg-purple"><i class="fa-solid fa-user-astronaut"></i><span id="label-driver">PILOTA</span><select id="driver-select" onchange="updateOverlayLabel('driver')"><option value="" disabled selected>SCEGLI...</option></select></div>
-      <div class="square-box bg-red" style="grid-column: span 2; height: 78px;"><i class="fa-solid fa-flag-checkered"></i><span id="label-session">TIPO PROVA</span><select id="session-select" onchange="updateOverlayLabel('session')"><option value="" disabled selected>SCEGLI...</option></select></div>
+      <div class="square-box bg-red" style="grid-column: span 2; height: 68px;"><i class="fa-solid fa-flag-checkered"></i><span id="label-session">TIPO PROVA</span><select id="session-select" onchange="updateOverlayLabel('session')"><option value="" disabled selected>SCEGLI...</option></select></div>
     </div>
     
     <div class="wide-voice-bar" id="voice-bar-btn" onclick="toggleVoiceRecognition();">
@@ -115,8 +167,98 @@
       <button class="btn-sheet-both" onclick="comandoFoglioRemoto('salvaECancellaFoglioTeam')"><i class="fa-solid fa-rotate"></i> SALVA + PULISCI</button>
       <button class="btn-sheet-clear" onclick="comandoFoglioRemoto('cancellaFoglioTeam')"><i class="fa-solid fa-trash-can"></i> CANCELLA</button>
     </div>
-    
-    <button class="square-box bg-yellow" style="width: 100%; max-width: 380px; height: 56px;" onclick="confirmOverlayAll()"><i class="fa-solid fa-play"></i><span>ENTRA IN PISTA</span></button>
+
+    <div class="paddock-bottom-actions">
+      <button class="square-box bg-yellow" style="width: 100%; height: 54px;" onclick="confirmOverlayAll()"><i class="fa-solid fa-play"></i><span>ENTRA IN PISTA</span></button>
+      <button class="btn-analisi-paddock" onclick="apriAnalisiOverlay()"><i class="fa-solid fa-chart-line"></i><span>ANALISI</span></button>
+    </div>
+  </div>
+
+  <!-- 📊 OVERLAY ANALISI SESSIONE & CONFRONTO TURNI -->
+  <div id="analysis-overlay">
+    <div class="an-topbar">
+      <button class="an-back-btn" onclick="chiudiAnalisiOverlay()"><i class="fa-solid fa-arrow-left"></i> PADDOCK</button>
+      <div class="an-title-box">
+        <h3>ANALISI TELEMETRIA</h3>
+        <div id="an-sync-label">PRONTO</div>
+      </div>
+      <button class="an-refresh-btn" onclick="caricaDatiAnalisi(true)"><i class="fa-solid fa-arrows-rotate"></i></button>
+    </div>
+
+    <div class="an-filters">
+      <div class="an-filter-box">
+        <label>Pilota</label>
+        <select id="an-driver-select" onchange="aggiornaMenuSessioniAnalisi()"></select>
+      </div>
+      <div class="an-filter-box">
+        <label>Turno A (Principale)</label>
+        <select id="an-sess-a-select" onchange="renderizzaAnalisi()"></select>
+      </div>
+      <div class="an-filter-box">
+        <label>Confronta Turno B</label>
+        <select id="an-sess-b-select" onchange="renderizzaAnalisi()"></select>
+      </div>
+    </div>
+
+    <div class="an-kpi-grid">
+      <div class="an-kpi-card">
+        <div class="an-kpi-label">Best Lap (Turno A)</div>
+        <div class="an-kpi-val" id="an-best-val" style="color:#00e676;">--:--.---</div>
+        <div class="an-kpi-sub" id="an-best-delta">VS B: --</div>
+      </div>
+      <div class="an-kpi-card">
+        <div class="an-kpi-label">Ideal Lap (Turno A)</div>
+        <div class="an-kpi-val" id="an-ideal-val" style="color:#00e5ff;">--:--.---</div>
+        <div class="an-kpi-sub" id="an-ideal-delta">VS B: --</div>
+      </div>
+      <div class="an-kpi-card">
+        <div class="an-kpi-label">Margine (Best - Ideal)</div>
+        <div class="an-kpi-val" id="an-gap-ideal-val" style="color:#ffeb3b;">--.---</div>
+        <div class="an-kpi-sub" id="an-laps-count">0 GIRI VALIDI</div>
+      </div>
+      <div class="an-kpi-card">
+        <div class="an-kpi-label">Media Passo & Costanza</div>
+        <div class="an-kpi-val" id="an-avg-val" style="color:#fff;">--:--.---</div>
+        <div class="an-kpi-sub" id="an-consistency-val">COSTANZA: --</div>
+      </div>
+    </div>
+
+    <div class="an-notes-box" id="an-notes-box">
+      <div class="an-notes-title"><i class="fa-solid fa-microphone-lines"></i> Note Assetto & Metadati Turno</div>
+      <div id="an-notes-content" class="an-note-row">Nessuna nota registrata per questo turno.</div>
+    </div>
+
+    <div class="an-section-card">
+      <div class="an-section-header">
+        <span>Migliori Settori (S1 - S8)</span>
+        <span id="an-sec-compare-badge" style="color:#888; font-size:10px;">TURNO SINGOLO</span>
+      </div>
+      <table class="an-sec-table">
+        <thead>
+          <tr>
+            <th>Sett.</th>
+            <th>Turno A</th>
+            <th id="an-th-b" style="display:none;">Turno B</th>
+            <th id="an-th-delta" style="display:none;">Δ (A - B)</th>
+          </tr>
+        </thead>
+        <tbody id="an-sec-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="an-section-card">
+      <div class="an-section-header">
+        <span>Andamento Passo Giro su Giro</span>
+        <span id="an-chart-legend" style="color:#00e676; font-size:10px;">VERDE = BEST A</span>
+      </div>
+      <svg id="an-chart-svg" viewBox="0 0 340 86" preserveAspectRatio="none"></svg>
+    </div>
+
+    <div class="an-section-header" style="padding: 0 2px;">
+      <span>Elenco Giri (Tocca un giro per gli Split)</span>
+      <span id="an-source-badge" style="color:#888; font-size:10px;">--</span>
+    </div>
+    <div class="an-lap-list" id="an-lap-list"></div>
   </div>
 
   <!-- INTERFACCIA CRONOMETRO -->
@@ -182,6 +324,7 @@
     let currentLapCum = {}, bestLapCum = {};
     let lapHistory = [];
     let isSyncing = false;
+    let analisiDataset = [];
 
     /* 📊 RENDERING GRAFICO TREND GIRI (SVG ULTRA-LEGGERO) */
     function aggiornaGraficoGiri() {
@@ -198,7 +341,6 @@
         return;
       }
 
-      // Mostra gli ultimi 10 giri completati per mantenere i punti ben distanziati
       const dati = lapHistory.slice(-10);
       const primoGiro = dati[0].lap;
       const ultimoGiro = dati[dati.length - 1].lap;
@@ -224,7 +366,6 @@
       const w = 320 - padX * 2;
       const h = 24 - padY * 2;
 
-      // Y invertita rispetto ai ms: giro più veloce (minMs) in basso, giro più lento (maxMs) in alto
       const pts = dati.map((d, idx) => {
         const x = padX + (idx / (dati.length - 1)) * w;
         const norm = (d.ms - minMs) / span;
@@ -232,24 +373,21 @@
         return { x: Number(x.toFixed(1)), y: Number(y.toFixed(1)), ms: d.ms, lap: d.lap };
       });
 
-      // Linea tratteggiata verde sul fondo = Best Lap dello stint
       let markup = '<line x1="' + padX + '" y1="' + (padY + h) + '" x2="' + (320 - padX) + '" y2="' + (padY + h) + '" stroke="#00e676" stroke-width="1" stroke-opacity="0.35" stroke-dasharray="3 3" />';
 
-      // Segmenti colorati tra un giro e il successivo
       for (let i = 1; i < pts.length; i++) {
         const diffPrev = pts[i].ms - pts[i - 1].ms;
         let segColor = "#00e676";
         if (diffPrev > 250) {
-          segColor = "#ff1744"; // Forte peggioramento / gomme oltre il picco
+          segColor = "#ff1744";
         } else if (diffPrev > 100) {
-          segColor = "#ff9100"; // Peggioramento > 1 decimo
+          segColor = "#ff9100";
         } else if (diffPrev > 0) {
-          segColor = "#ffffff"; // Stabile entro 1 decimo
+          segColor = "#ffffff";
         }
         markup += '<line x1="' + pts[i - 1].x + '" y1="' + pts[i - 1].y + '" x2="' + pts[i].x + '" y2="' + pts[i].y + '" stroke="' + segColor + '" stroke-width="2.4" stroke-linecap="round" />';
       }
 
-      // Pallini sui singoli giri
       for (let i = 0; i < pts.length; i++) {
         let dotColor = "#00e676";
         if (i > 0) {
@@ -264,7 +402,6 @@
 
       svg.innerHTML = markup;
 
-      // Badge destro: confronto immediato ultimo giro vs penultimo giro
       const lastDiff = pts[pts.length - 1].ms - pts[pts.length - 2].ms;
       const arrow = lastDiff < 0 ? "↘ " : (lastDiff > 0 ? "↗ " : "→ ");
       badgeEl.innerText = arrow + formatDelta(lastDiff) + " VS G" + pts[pts.length - 2].lap;
@@ -345,7 +482,7 @@
         bar.style.display = "inline-block";
         bar.style.background = "#ff9100";
         bar.style.color = "#000";
-        bar.innerText = "📴 IN CODA OFFLINE: " + queue.length + " (TOCCA PER INVIARE)";
+        bar.innerText = "🔴 IN CODA OFFLINE: " + queue.length + " (TOCCA PER INVIARE)";
       } else {
         bar.style.display = "none";
       }
@@ -530,6 +667,7 @@
       codiceScuderiaAttivo = "";
       aggiornaBarraSync();
       document.getElementById('mechanic-overlay').style.display = 'none';
+      document.getElementById('analysis-overlay').style.display = 'none';
       document.getElementById('login-overlay').style.display = 'flex';
       document.getElementById('codice-scuderia-input').value = "";
     }
@@ -901,7 +1039,6 @@
 
         resetBarsTimer = setTimeout(resetSectorBars, 1200);
         
-        // Aggiorna lo storico grafico con il giro appena concluso prima di passare al successivo
         lapHistory.push({ lap: lapCount, ms: durata });
         aggiornaGraficoGiri();
 
@@ -968,6 +1105,371 @@
           if (subEl) subEl.innerText = data.message.split("\n")[0];
         }
       });
+    }
+
+    /* ===================================================================== */
+    /* 📊 LOGICA ANALISI TELEMETRIA & CONFRONTO TURNI A vs B SU IPHONE       */
+    /* ===================================================================== */
+    function apriAnalisiOverlay() {
+      if (!codiceScuderiaAttivo) return alert("Effettua prima l'accesso con il Codice Scuderia!");
+      document.getElementById('mechanic-overlay').style.display = 'none';
+      document.getElementById('analysis-overlay').style.display = 'flex';
+      caricaDatiAnalisi(false);
+    }
+
+    function chiudiAnalisiOverlay() {
+      document.getElementById('analysis-overlay').style.display = 'none';
+      document.getElementById('mechanic-overlay').style.display = 'flex';
+    }
+
+    function caricaDatiAnalisi(forzaRete = false) {
+      const syncLabel = document.getElementById('an-sync-label');
+      const cacheKey = 'cronopro_analisi_cache_' + codiceScuderiaAttivo;
+
+      // Carica subito eventuale cache locale per risposta istantanea al muretto
+      const cachedRaw = localStorage.getItem(cacheKey);
+      if (cachedRaw && !forzaRete) {
+        try {
+          const parsed = JSON.parse(cachedRaw);
+          analisiDataset = parsed.giri || [];
+          syncLabel.innerText = "CACHE (" + (parsed.aggiornato || "--:--") + ")";
+          popolaFiltriAnalisi();
+        } catch (e) {}
+      }
+
+      if (!navigator.onLine) {
+        syncLabel.innerText = "OFFLINE (DATI LOCALI)";
+        if (analisiDataset.length === 0) {
+          document.getElementById('an-lap-list').innerHTML = '<div style="text-align:center; color:#ff9100; padding:20px; font-weight:bold;">Nessun dato in cache e nessuna rete disponibile.</div>';
+        }
+        return;
+      }
+
+      syncLabel.innerText = "AGGIORNAMENTO...";
+      fetch(MASTER_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "getAnalisiSessione", codiceScuderia: codiceScuderiaAttivo })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          syncLabel.innerText = "ERRORE: " + data.error;
+          return;
+        }
+        analisiDataset = data.giri || [];
+        localStorage.setItem(cacheKey, JSON.stringify({ aggiornato: data.aggiornato, giri: analisiDataset }));
+        syncLabel.innerText = "LIVE AGGIORNATO " + (data.aggiornato || "");
+        popolaFiltriAnalisi();
+      })
+      .catch(() => {
+        syncLabel.innerText = "OFFLINE (CACHE)";
+      });
+    }
+
+    function popolaFiltriAnalisi() {
+      const drvSel = document.getElementById('an-driver-select');
+      const pilotaPaddock = (document.getElementById('driver-select').value || localStorage.getItem('saved_driver') || "").toUpperCase().trim();
+      const prevPilota = drvSel.value || pilotaPaddock;
+
+      const pilotiSet = [...new Set(analisiDataset.map(g => g.pilota).filter(Boolean))].sort();
+      drvSel.innerHTML = "";
+
+      if (pilotiSet.length === 0) {
+        drvSel.add(new Option("NESSUN DATO", ""));
+        document.getElementById('an-sess-a-select').innerHTML = '<option value="">--</option>';
+        document.getElementById('an-sess-b-select').innerHTML = '<option value="">NESSUNO</option>';
+        document.getElementById('an-lap-list').innerHTML = '<div style="text-align:center; color:#888; padding:20px;">Nessun giro registrato su CRONOMETRO o ARCHIVIO.</div>';
+        return;
+      }
+
+      pilotiSet.forEach(p => drvSel.add(new Option(p, p)));
+      if (prevPilota && pilotiSet.indexOf(prevPilota) !== -1) {
+        drvSel.value = prevPilota;
+      }
+
+      aggiornaMenuSessioniAnalisi();
+    }
+
+    function aggiornaMenuSessioniAnalisi() {
+      const pilota = document.getElementById('an-driver-select').value;
+      const sessASel = document.getElementById('an-sess-a-select');
+      const sessBSel = document.getElementById('an-sess-b-select');
+      const sessPaddock = (document.getElementById('session-select').value || localStorage.getItem('saved_session') || "").toUpperCase().trim();
+
+      const prevA = sessASel.value;
+      const prevB = sessBSel.value;
+
+      const giriPilota = analisiDataset.filter(g => g.pilota === pilota);
+      const sessioni = [...new Set(giriPilota.map(g => g.sessione).filter(Boolean))];
+
+      sessASel.innerHTML = "";
+      sessBSel.innerHTML = '<option value="">NESSUNO</option>';
+
+      sessioni.forEach(s => {
+        sessASel.add(new Option(s, s));
+        sessBSel.add(new Option(s, s));
+      });
+      if (sessioni.length > 1) {
+        sessASel.add(new Option("TUTTE", "__ALL__"));
+      }
+
+      if (prevA && [...sessASel.options].some(o => o.value === prevA)) {
+        sessASel.value = prevA;
+      } else if (sessPaddock && sessioni.indexOf(sessPaddock) !== -1) {
+        sessASel.value = sessPaddock;
+      } else if (sessioni.length > 0) {
+        sessASel.value = sessioni[sessioni.length - 1]; // Ultima sessione disputata
+      }
+
+      if (prevB && [...sessBSel.options].some(o => o.value === prevB)) {
+        sessBSel.value = prevB;
+      }
+
+      renderizzaAnalisi();
+    }
+
+    function calcolaMetricheTurno(giri) {
+      if (!giri || giri.length === 0) return null;
+      let bestMs = Infinity;
+      let bestSplit = [Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity];
+      let sumMs = 0;
+      let noteSet = [];
+      let metaSet = [];
+      let fonti = new Set();
+
+      giri.forEach(g => {
+        if (g.lapMs < bestMs) bestMs = g.lapMs;
+        sumMs += g.lapMs;
+        if (g.fonte) fonti.add(g.fonte);
+        for (let i = 0; i < 8; i++) {
+          if (g.splits[i] > 0 && g.splits[i] < bestSplit[i]) {
+            bestSplit[i] = g.splits[i];
+          }
+        }
+        if (g.nota && noteSet.indexOf(g.nota) === -1) noteSet.push(g.nota);
+        let metaStr = [g.pista, g.categoria, g.meccanico ? "MEC: " + g.meccanico : ""].filter(Boolean).join(" • ");
+        if (metaStr && metaSet.indexOf(metaStr) === -1) metaSet.push(metaStr);
+      });
+
+      let idealMs = 0;
+      let hasSplits = false;
+      for (let i = 0; i < 8; i++) {
+        if (bestSplit[i] < Infinity) {
+          idealMs += bestSplit[i];
+          hasSplits = true;
+        }
+      }
+      if (!hasSplits || idealMs <= 0) idealMs = bestMs;
+
+      let avgMs = Math.round(sumMs / giri.length);
+      let variance = giri.reduce((acc, g) => acc + Math.pow(g.lapMs - avgMs, 2), 0) / giri.length;
+      let stdDevMs = Math.round(Math.sqrt(variance));
+
+      return {
+        giri: giri,
+        count: giri.length,
+        bestMs: bestMs,
+        idealMs: idealMs,
+        gapIdealMs: Math.max(0, bestMs - idealMs),
+        avgMs: avgMs,
+        stdDevMs: stdDevMs,
+        bestSplit: bestSplit,
+        note: noteSet,
+        meta: metaSet,
+        fonti: [...fonti].join("+")
+      };
+    }
+
+    function renderizzaAnalisi() {
+      const pilota = document.getElementById('an-driver-select').value;
+      const sessA = document.getElementById('an-sess-a-select').value;
+      const sessB = document.getElementById('an-sess-b-select').value;
+
+      const giriA = analisiDataset.filter(g => g.pilota === pilota && (sessA === "__ALL__" || g.sessione === sessA));
+      const giriB = sessB ? analisiDataset.filter(g => g.pilota === pilota && g.sessione === sessB) : [];
+
+      const mA = calcolaMetricheTurno(giriA);
+      const mB = calcolaMetricheTurno(giriB);
+
+      if (!mA) {
+        document.getElementById('an-best-val').innerText = "--:--.---";
+        document.getElementById('an-ideal-val').innerText = "--:--.---";
+        document.getElementById('an-gap-ideal-val').innerText = "--.---";
+        document.getElementById('an-avg-val').innerText = "--:--.---";
+        document.getElementById('an-lap-list').innerHTML = '<div style="text-align:center; color:#888; padding:20px;">Nessun giro trovato per questa selezione.</div>';
+        return;
+      }
+
+      // 1. KPI CARDS
+      document.getElementById('an-best-val').innerText = msToTime(mA.bestMs);
+      document.getElementById('an-ideal-val').innerText = msToTime(mA.idealMs);
+      document.getElementById('an-gap-ideal-val').innerText = "+" + formatDelta(mA.gapIdealMs).replace("+", "");
+      document.getElementById('an-laps-count').innerText = mA.count + (mA.count === 1 ? " GIRO" : " GIRI");
+      document.getElementById('an-avg-val').innerText = msToTime(mA.avgMs);
+      document.getElementById('an-consistency-val').innerText = "SCARTO MEDIO: ±" + (mA.stdDevMs / 1000).toFixed(3) + "s";
+      document.getElementById('an-source-badge').innerText = mA.fonti;
+
+      const bestDeltaEl = document.getElementById('an-best-delta');
+      const idealDeltaEl = document.getElementById('an-ideal-delta');
+      if (mB) {
+        const dBest = mA.bestMs - mB.bestMs;
+        bestDeltaEl.innerText = formatDelta(dBest) + " VS " + sessB;
+        bestDeltaEl.style.color = dBest < 0 ? "#00e676" : (dBest > 0 ? "#ff9100" : "#fff");
+
+        const dIdeal = mA.idealMs - mB.idealMs;
+        idealDeltaEl.innerText = formatDelta(dIdeal) + " VS " + sessB;
+        idealDeltaEl.style.color = dIdeal < 0 ? "#00e676" : (dIdeal > 0 ? "#ff9100" : "#fff");
+      } else {
+        bestDeltaEl.innerText = "CONFRONTO B NON ATTIVO";
+        bestDeltaEl.style.color = "#777";
+        idealDeltaEl.innerText = "SOMMA MIGLIORI SETTORI";
+        idealDeltaEl.style.color = "#777";
+      }
+
+      // 2. NOTE ASSETTO & METADATI
+      let noteHtml = "";
+      if (mA.meta.length > 0) {
+        noteHtml += '<div class="an-note-row" style="color:#aaa;"><strong>' + (sessA === "__ALL__" ? "TUTTE" : sessA) + ':</strong> ' + mA.meta.join(" | ") + '</div>';
+      }
+      noteHtml += '<div class="an-note-row"><strong>NOTE A:</strong> ' + (mA.note.length ? mA.note.join(" • ") : "Nessuna nota vocale") + '</div>';
+      if (mB) {
+        noteHtml += '<div class="an-note-row" style="color:#80d8ff; margin-top:3px;"><strong>NOTE B (' + sessB + '):</strong> ' + (mB.note.length ? mB.note.join(" • ") : "Nessuna nota vocale") + '</div>';
+      }
+      document.getElementById('an-notes-content').innerHTML = noteHtml;
+
+      // 3. TABELLA MIGLIORI SETTORI S1-S8 + DELTA TURNO B
+      const thB = document.getElementById('an-th-b');
+      const thDelta = document.getElementById('an-th-delta');
+      const secBadge = document.getElementById('an-sec-compare-badge');
+      thB.style.display = mB ? "" : "none";
+      thDelta.style.display = mB ? "" : "none";
+      if (mB) {
+        thB.innerText = sessB;
+        secBadge.innerText = (sessA === "__ALL__" ? "TUTTE" : sessA) + " VS " + sessB;
+        secBadge.style.color = "#ffeb3b";
+      } else {
+        secBadge.innerText = "TURNO SINGOLO";
+        secBadge.style.color = "#888";
+      }
+
+      let tbodyHtml = "";
+      let activeSectors = 0;
+      for (let s = 0; s < 8; s++) {
+        const sA = mA.bestSplit[s] < Infinity ? mA.bestSplit[s] : 0;
+        const sB = (mB && mB.bestSplit[s] < Infinity) ? mB.bestSplit[s] : 0;
+        if (sA === 0 && sB === 0) continue;
+        activeSectors++;
+
+        let row = '<tr><td style="color:#00e5ff;">S' + (s + 1) + '</td>';
+        row += '<td style="color:#fff;">' + (sA > 0 ? msToTime(sA) : "--:--.---") + '</td>';
+        if (mB) {
+          row += '<td style="color:#bbb;">' + (sB > 0 ? msToTime(sB) : "--:--.---") + '</td>';
+          if (sA > 0 && sB > 0) {
+            const diffS = sA - sB;
+            const colS = diffS < 0 ? "#00e676" : (diffS > 0 ? "#ff9100" : "#ffffff");
+            row += '<td style="color:' + colS + ';">' + formatDelta(diffS) + '</td>';
+          } else {
+            row += '<td style="color:#666;">--</td>';
+          }
+        }
+        row += '</tr>';
+        tbodyHtml += row;
+      }
+      if (activeSectors === 0) {
+        tbodyHtml = '<tr><td colspan="4" style="color:#777; padding:8px;">Nessun intertempo registrato (solo tempi sul giro).</td></tr>';
+      }
+      document.getElementById('an-sec-tbody').innerHTML = tbodyHtml;
+
+      // 4. GRAFICO SVG COMPLETO DELLA SESSIONE
+      renderizzaGraficoAnalisi(mA, mB, sessB);
+
+      // 5. LISTA GIRI ESPANDIBILE
+      let listHtml = "";
+      mA.giri.forEach((g, idx) => {
+        const isBest = g.lapMs === mA.bestMs;
+        const diffBest = g.lapMs - mA.bestMs;
+        const gapStr = isBest ? "BEST LAP" : "+" + formatDelta(diffBest).replace("+", "");
+        const gapColor = isBest ? "#00e676" : (diffBest <= 150 ? "#ffffff" : "#ff9100");
+
+        let splitsHtml = "";
+        for (let k = 0; k < 8; k++) {
+          if (g.splits[k] > 0) {
+            splitsHtml += '<div class="an-split-pill"><span>S' + (k + 1) + ':</span> ' + msToTime(g.splits[k]) + '</div>';
+          }
+        }
+        if (!splitsHtml) {
+          splitsHtml = '<div class="an-split-pill" style="grid-column: span 4; color:#888;">Nessun parziale registrato</div>';
+        }
+
+        listHtml +=
+          '<div class="an-lap-item ' + (isBest ? 'best-lap-row' : '') + '" onclick="this.querySelector(\'.an-lap-splits\').classList.toggle(\'open\')">' +
+            '<div class="an-lap-main">' +
+              '<div><span class="an-lap-num">G' + (idx + 1) + '</span><span class="an-lap-badge">' + g.sessione + ' • ' + g.fonte + '</span></div>' +
+              '<div class="an-lap-time" style="color:' + (isBest ? '#00e676' : '#fff') + ';">' + msToTime(g.lapMs) + '</div>' +
+              '<div class="an-lap-gap" style="color:' + gapColor + ';">' + gapStr + '</div>' +
+            '</div>' +
+            '<div class="an-lap-splits">' + splitsHtml + '</div>' +
+          '</div>';
+      });
+      document.getElementById('an-lap-list').innerHTML = listHtml;
+    }
+
+    function renderizzaGraficoAnalisi(mA, mB, sessB) {
+      const svg = document.getElementById('an-chart-svg');
+      const legend = document.getElementById('an-chart-legend');
+      const laps = mA.giri;
+
+      if (!laps || laps.length === 0) {
+        svg.innerHTML = "";
+        return;
+      }
+
+      const times = laps.map(g => g.lapMs);
+      if (mB) times.push(mB.bestMs);
+      const minMs = Math.min(...times);
+      const maxMs = Math.max(...times);
+      const span = (maxMs - minMs) || 1;
+
+      const padX = 14;
+      const padY = 12;
+      const w = 340 - padX * 2;
+      const h = 86 - padY * 2;
+
+      const pts = laps.map((g, idx) => {
+        const x = laps.length === 1 ? 170 : padX + (idx / (laps.length - 1)) * w;
+        const norm = (g.lapMs - minMs) / span;
+        const y = (padY + h) - norm * h;
+        return { x: Number(x.toFixed(1)), y: Number(y.toFixed(1)), ms: g.lapMs };
+      });
+
+      let markup = "";
+
+      // Linea riferimento Best Turno B (se attivo)
+      if (mB) {
+        const yB = Number(((padY + h) - ((mB.bestMs - minMs) / span) * h).toFixed(1));
+        markup += '<line x1="' + padX + '" y1="' + yB + '" x2="' + (340 - padX) + '" y2="' + yB + '" stroke="#00e5ff" stroke-width="1.2" stroke-dasharray="4 3" />';
+        legend.innerText = "VERDE = BEST A | AZZURRO = BEST " + sessB;
+        legend.style.color = "#00e5ff";
+      } else {
+        legend.innerText = "VERDE = BEST A (" + msToTime(mA.bestMs) + ")";
+        legend.style.color = "#00e676";
+      }
+
+      // Linea tracciato giro su giro
+      if (pts.length > 1) {
+        let polyPts = pts.map(p => p.x + "," + p.y).join(" ");
+        markup += '<polyline fill="none" stroke="#ffeb3b" stroke-width="2" points="' + polyPts + '" />';
+      }
+
+      // Punti giri
+      pts.forEach(p => {
+        const isBest = p.ms === mA.bestMs;
+        const fill = isBest ? "#00e676" : "#ffffff";
+        const r = isBest ? 4.5 : 3;
+        markup += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + r + '" fill="' + fill + '" stroke="#000" stroke-width="1" />';
+      });
+
+      svg.innerHTML = markup;
     }
 
     function msToTime(s) {
