@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cronopro-offline-v8';
+const CACHE_NAME = 'cronopro-offline-v9';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
