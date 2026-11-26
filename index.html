@@ -5,12 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>CronoPro</title>
-  <link rel="manifest" href="manifest.json?v=8">
+  <link rel="manifest" href="manifest.json?v=9">
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CronoPro">
-  <link rel="apple-touch-icon" href="icon-512.png?v=8">
+  <link rel="apple-touch-icon" href="icon-512.png?v=9">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #000; color: #fff; margin: 0; padding: 8px 10px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
@@ -20,6 +20,11 @@
     #sync-status-bar { display: none; background: #ff9100; color: #000; font-size: 11px; font-weight: 900; padding: 3px 10px; border-radius: 12px; margin-bottom: 3px; cursor: pointer; letter-spacing: 0.5px; text-transform: uppercase; }
     #main-time { font-size: 62px; font-weight: 900; font-family: 'monospace'; margin: 0; line-height: 1; color: #fff; }
     #intertempo { font-size: 18px; color: #00e5ff; font-family: 'monospace'; height: 42px; margin-top: 4px; font-weight: bold; line-height: 1.15; }
+
+    /* 🏆 BARRA PILOTA ATTIVO + BEST DELLA GIORNATA SOPRA TREND GIRI */
+    #day-best-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; padding: 0 3px; box-sizing: border-box; }
+    #active-driver-badge { color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46%; }
+    #day-best-badge { color: #ffeb3b; white-space: nowrap; transition: color 0.25s ease; }
     
     /* GRAFICO A LINEE TREND SEQUENZA GIRI (SOPRA IL DELTA) */
     #lap-chart-box { width: 100%; height: 42px; background: #0d0d0d; border: 1px solid #262626; border-radius: 8px; margin-bottom: 5px; padding: 3px 8px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
@@ -188,7 +193,6 @@
       <button class="an-refresh-btn" onclick="caricaDatiAnalisi(true)"><i class="fa-solid fa-arrows-rotate"></i></button>
     </div>
 
-    <!-- RIGA 1 FILTRI: FONTE / CATEGORIA / PISTA -->
     <div class="an-filters-3">
       <div class="an-filter-box highlight-box">
         <label>Fonte Dati</label>
@@ -208,7 +212,6 @@
       </div>
     </div>
 
-    <!-- RIGA 2 FILTRI: DATA / PILOTA -->
     <div class="an-filters-2">
       <div class="an-filter-box">
         <label>Data Test / Gara</label>
@@ -220,7 +223,6 @@
       </div>
     </div>
 
-    <!-- RIGA 3 FILTRI: TURNO A / CONFRONTA TURNO B -->
     <div class="an-filters-2">
       <div class="an-filter-box">
         <label>Turno A (Principale)</label>
@@ -302,6 +304,12 @@
     <div id="intertempo">--:--.---</div>
   </div>
 
+  <!-- 🏆 PILOTA ATTIVO + BEST DELLA GIORNATA SOPRA TREND GIRI -->
+  <div id="day-best-bar">
+    <span id="active-driver-badge">PILOTA: --</span>
+    <span id="day-best-badge">BEST GIORNO: --:--.---</span>
+  </div>
+
   <!-- 📊 GRAFICO A LINEE TREND SEQUENZA GIRI (PRESSIONI / PASSO) -->
   <div id="lap-chart-box">
     <div class="chart-header">
@@ -327,8 +335,8 @@
   </div>
 
   <div class="stats-row">
-    <div class="stat-box"><div class="stat-label">Best Lap</div><div id="best-val" style="color:#ffeb3b">--:--.---</div></div>
-    <div class="stat-box"><div class="stat-label">Ideal Lap</div><div id="ideal-val" style="color:#00e5ff">--:--.---</div></div>
+    <div class="stat-box"><div class="stat-label">Best Lap (Prova)</div><div id="best-val" style="color:#ffeb3b">--:--.---</div></div>
+    <div class="stat-box"><div class="stat-label">Ideal Lap (Prova)</div><div id="ideal-val" style="color:#00e5ff">--:--.---</div></div>
   </div>
   <div class="action-grid">
     <button class="btn split-btn" onclick="press('Split')">SPLIT</button> <button class="btn lap-btn" onclick="press('Lap1')">LAP</button>
@@ -357,6 +365,39 @@
     let lapHistory = [];
     let isSyncing = false;
     let analisiDataset = [];
+    let bestDayMs = 0;
+    let bestDayFlashTimer = null;
+
+    function timeStrToMs(str) {
+      if (!str) return 0;
+      let s = String(str).trim();
+      if (s === "" || s === "00:00.000" || s === "--:--.---") return 0;
+      let parts = s.split(":");
+      if (parts.length === 2) {
+        let mins = parseInt(parts[0], 10) || 0;
+        let secParts = parts[1].split(".");
+        let secs = parseInt(secParts[0], 10) || 0;
+        let ms = parseInt((secParts[1] || "0").padEnd(3, "0").slice(0, 3), 10) || 0;
+        return (mins * 60 + secs) * 1000 + ms;
+      }
+      return 0;
+    }
+
+    function aggiornaBadgeBestGiorno(strTempo, nuovoRecord = false) {
+      const badge = document.getElementById('day-best-badge');
+      if (!badge) return;
+      const val = (strTempo && strTempo !== "00:00.000") ? strTempo : "--:--.---";
+      badge.innerText = "BEST GIORNO: " + val;
+      if (nuovoRecord) {
+        badge.style.color = "#00e676";
+        if (bestDayFlashTimer) clearTimeout(bestDayFlashTimer);
+        bestDayFlashTimer = setTimeout(() => {
+          badge.style.color = "#ffeb3b";
+        }, 4000);
+      } else {
+        badge.style.color = "#ffeb3b";
+      }
+    }
 
     /* 📊 RENDERING GRAFICO TREND GIRI (SVG ULTRA-LEGGERO) */
     function aggiornaGraficoGiri() {
@@ -586,6 +627,13 @@
           aggiornaTitoloPaddockOnline(true);
           if (data && data.miglior) document.getElementById('best-val').innerText = data.miglior;
           if (data && data.ideal) document.getElementById('ideal-val').innerText = data.ideal;
+          if (data && data.bestDay && data.bestDay !== "--:--.---") {
+            let srvMs = timeStrToMs(data.bestDay);
+            if (srvMs > 0 && (bestDayMs === 0 || srvMs <= bestDayMs)) {
+              bestDayMs = srvMs;
+              aggiornaBadgeBestGiorno(data.bestDay);
+            }
+          }
 
           queue.shift();
           localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
@@ -697,6 +745,8 @@
       }
       localStorage.clear();
       codiceScuderiaAttivo = "";
+      bestDayMs = 0;
+      aggiornaBadgeBestGiorno("--:--.---");
       aggiornaBarraSync();
       document.getElementById('mechanic-overlay').style.display = 'none';
       document.getElementById('analysis-overlay').style.display = 'none';
@@ -809,6 +859,16 @@
       
       varMechanic = m; varCategory = c; varTrack = t;
       document.getElementById('pilota').value = d; document.getElementById('sessione').value = s;
+      document.getElementById('active-driver-badge').innerText = d.toUpperCase() + " • " + s.toUpperCase();
+
+      let cachedDayBest = localStorage.getItem('saved_dayBest_' + codiceScuderiaAttivo + '_' + d.toUpperCase());
+      if (cachedDayBest) {
+        bestDayMs = timeStrToMs(cachedDayBest);
+        aggiornaBadgeBestGiorno(cachedDayBest);
+      } else {
+        bestDayMs = 0;
+        aggiornaBadgeBestGiorno("--:--.---");
+      }
       
       if (navigator.onLine) {
         fetch(MASTER_URL, {
@@ -820,6 +880,11 @@
           aggiornaTitoloPaddockOnline(true);
           document.getElementById('best-val').innerText = data.best || "--:--.---"; 
           document.getElementById('ideal-val').innerText = data.ideal || "--:--.---";
+          if (data.bestDay) {
+            bestDayMs = timeStrToMs(data.bestDay);
+            aggiornaBadgeBestGiorno(data.bestDay);
+            localStorage.setItem('saved_dayBest_' + codiceScuderiaAttivo + '_' + d.toUpperCase(), data.bestDay);
+          }
         })
         .catch(() => {});
       }
@@ -1088,6 +1153,15 @@
           display.style.color = "#ff9100";
         }
         currentLapCum = {};
+
+        // 🏆 AGGIORNA SUBITO IL BEST DELLA GIORNATA SE BATTUTO (ANCHE OFFLINE)
+        let pilotaAttivo = document.getElementById('pilota').value.toUpperCase().trim();
+        if (durata >= 1000 && (bestDayMs === 0 || durata < bestDayMs)) {
+          bestDayMs = durata;
+          let fmtDay = msToTime(durata);
+          aggiornaBadgeBestGiorno(fmtDay, true);
+          localStorage.setItem('saved_dayBest_' + codiceScuderiaAttivo + '_' + pilotaAttivo, fmtDay);
+        }
         
         inviaOAccodaDato({
           action: "registraDato",
@@ -1105,6 +1179,14 @@
         }, (data) => {
           if (data.miglior) document.getElementById('best-val').innerText = data.miglior;
           if (data.ideal) document.getElementById('ideal-val').innerText = data.ideal;
+          if (data.bestDay && data.bestDay !== "--:--.---") {
+            let srvDayMs = timeStrToMs(data.bestDay);
+            if (srvDayMs > 0 && (bestDayMs === 0 || srvDayMs <= bestDayMs)) {
+              bestDayMs = srvDayMs;
+              aggiornaBadgeBestGiorno(data.bestDay);
+              localStorage.setItem('saved_dayBest_' + codiceScuderiaAttivo + '_' + pilotaAttivo, data.bestDay);
+            }
+          }
         });
 
         splitCount = 0; 
@@ -1258,7 +1340,6 @@
         return;
       }
 
-      // 1. LIVELLO FONTE (LIVE / ARCHIVIO / TUTTI)
       const hasLive = analisiDataset.some(g => g.fonte === "LIVE");
       const hasArch = analisiDataset.some(g => g.fonte === "ARCHIVIO");
       if (trigger === 'init') {
@@ -1269,7 +1350,6 @@
       const fonteVal = fonteSel.value;
       const step1 = analisiDataset.filter(g => fonteVal === "__ALL__" || g.fonte === fonteVal);
 
-      // 2. LIVELLO CATEGORIA
       const prevCat = catSel.value;
       const paddockCat = (document.getElementById('category-select').value || localStorage.getItem('saved_category') || "").toUpperCase().trim();
       const catList = [...new Set(step1.map(g => g.categoria))].sort();
@@ -1289,7 +1369,6 @@
       const catVal = catSel.value;
       const step2 = step1.filter(g => catVal === "__ALL__" || g.categoria === catVal);
 
-      // 3. LIVELLO PISTA
       const prevTrack = trackSel.value;
       const paddockTrack = (document.getElementById('track-select').value || localStorage.getItem('saved_track') || "").toUpperCase().trim();
       const trackList = [...new Set(step2.map(g => g.pista))].sort();
@@ -1309,7 +1388,6 @@
       const trackVal = trackSel.value;
       const step3 = step2.filter(g => trackVal === "__ALL__" || g.pista === trackVal);
 
-      // 4. LIVELLO DATA (ordinata dalla più recente alla più vecchia)
       const prevDate = dateSel.value;
       const dateList = [...new Set(step3.map(g => g.dataGiorno))].sort(confrontaDateDesc);
       dateSel.innerHTML = "";
@@ -1326,7 +1404,6 @@
       const dateVal = dateSel.value;
       const step4 = step3.filter(g => dateVal === "__ALL__" || g.dataGiorno === dateVal);
 
-      // 5. LIVELLO PILOTA
       const prevDrv = drvSel.value;
       const paddockDrv = (document.getElementById('driver-select').value || localStorage.getItem('saved_driver') || "").toUpperCase().trim();
       const drvList = [...new Set(step4.map(g => g.pilota))].sort();
@@ -1343,7 +1420,6 @@
       const pilotaVal = drvSel.value;
       const step5 = step4.filter(g => g.pilota === pilotaVal);
 
-      // 6. LIVELLO TURNO A & TURNO B
       const prevA = sessASel.value;
       const prevB = sessBSel.value;
       const paddockSess = (document.getElementById('session-select').value || localStorage.getItem('saved_session') || "").toUpperCase().trim();
@@ -1508,7 +1584,6 @@
         return;
       }
 
-      // 1. KPI CARDS
       document.getElementById('an-best-val').innerText = msToTime(mA.bestMs);
       document.getElementById('an-ideal-val').innerText = msToTime(mA.idealMs);
       document.getElementById('an-gap-ideal-val').innerText = "+" + formatDelta(mA.gapIdealMs).replace("+", "");
@@ -1534,7 +1609,6 @@
         idealDeltaEl.style.color = "#777";
       }
 
-      // 2. NOTE ASSETTO & METADATI
       let noteHtml = "";
       if (mA.meta.length > 0) {
         noteHtml += '<div class="an-note-row" style="color:#aaa;"><strong>' + (sessA === "__ALL__" ? "TUTTE" : sessA) + ':</strong> ' + mA.meta.join(" | ") + '</div>';
@@ -1545,7 +1619,6 @@
       }
       document.getElementById('an-notes-content').innerHTML = noteHtml;
 
-      // 3. TABELLA MIGLIORI SETTORI S1-S8 + DELTA TURNO B
       const thB = document.getElementById('an-th-b');
       const thDelta = document.getElementById('an-th-delta');
       const secBadge = document.getElementById('an-sec-compare-badge');
@@ -1588,10 +1661,8 @@
       }
       document.getElementById('an-sec-tbody').innerHTML = tbodyHtml;
 
-      // 4. GRAFICO SVG CON SOVRAPPOSIZIONE TURNO A vs TURNO B
       renderizzaGraficoAnalisi(mA, mB, sessA, sessBLabel);
 
-      // 5. LISTA GIRI ESPANDIBILE (CON DELTA DIRETTO VS STESSO GIRO DEL TURNO B)
       let listHtml = "";
       mA.giri.forEach((g, idx) => {
         const isBest = g.lapMs === mA.bestMs;
@@ -1659,7 +1730,6 @@
 
       let markup = "";
 
-      // Guide orizzontali minimo (basso = veloce) e massimo (alto = lento)
       const yTop = padY;
       const yBot = padY + h;
       markup += '<line x1="' + padX + '" y1="' + yTop + '" x2="' + (340 - padX) + '" y2="' + yTop + '" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3 3" />';
@@ -1668,7 +1738,6 @@
       markup += '<text x="' + padX + '" y="104" fill="#00e676" font-size="8" font-family="monospace" font-weight="bold">MIN ' + msToTime(minMs) + '</text>';
       markup += '<text x="' + (340 - padX) + '" y="104" fill="#666" font-size="8" font-family="monospace" text-anchor="end">G1 → G' + maxLaps + '</text>';
 
-      // CURVA TURNO B (Sotto A: linea tratteggiata azzurra più spessa così resta visibile anche se sovrapposta)
       if (ptsB.length > 0) {
         if (ptsB.length > 1) {
           const polyPtsB = ptsB.map(p => p.x + "," + p.y).join(" ");
@@ -1683,7 +1752,6 @@
         });
       }
 
-      // CURVA TURNO A (In primo piano: linea continua gialla + pallino Verde sul Best A)
       if (ptsA.length > 1) {
         const polyPtsA = ptsA.map(p => p.x + "," + p.y).join(" ");
         markup += '<polyline fill="none" stroke="#ffeb3b" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round" points="' + polyPtsA + '" />';
@@ -1712,7 +1780,7 @@
     }
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=8');
+      navigator.serviceWorker.register('sw.js?v=9');
     }
   </script>
 </body>
