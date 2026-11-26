@@ -1734,8 +1734,8 @@
       return (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs + '.' + (ms < 100 ? (ms < 10 ? '00' : '0') : '') + ms;
     }
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
+   if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js?v=8');
     }
   </script>
 </body>
