@@ -5,12 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>CronoPro</title>
-  <link rel="manifest" href="manifest.json?v=6">
+  <link rel="manifest" href="manifest.json?v=7">
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CronoPro">
-  <link rel="apple-touch-icon" href="icon-512.png?v=6">
+  <link rel="apple-touch-icon" href="icon-512.png?v=7">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #000; color: #fff; margin: 0; padding: 8px 10px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
@@ -109,8 +109,8 @@
     .an-note-row { color: #eee; margin-bottom: 2px; }
 
     .an-section-card { background: #0f0f0f; border: 1px solid #262626; border-radius: 11px; padding: 8px; margin-bottom: 8px; }
-    .an-section-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 900; color: #00e5ff; text-transform: uppercase; margin-bottom: 6px; }
-    #an-chart-svg { width: 100%; height: 86px; display: block; background: #070707; border-radius: 8px; border: 1px solid #1e1e1e; }
+    .an-section-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 900; color: #00e5ff; text-transform: uppercase; margin-bottom: 6px; gap: 6px; }
+    #an-chart-svg { width: 100%; height: 108px; display: block; background: #070707; border-radius: 8px; border: 1px solid #1e1e1e; }
 
     .an-sec-table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 12px; }
     .an-sec-table th { font-size: 10px; color: #999; text-align: center; padding: 4px 2px; border-bottom: 1px solid #2a2a2a; text-transform: uppercase; }
@@ -123,7 +123,8 @@
     .an-lap-main { display: flex; justify-content: space-between; align-items: center; font-family: monospace; }
     .an-lap-num { font-size: 12px; font-weight: 900; color: #aaa; }
     .an-lap-time { font-size: 16px; font-weight: 900; color: #fff; }
-    .an-lap-gap { font-size: 12px; font-weight: 900; }
+    .an-lap-gap { font-size: 12px; font-weight: 900; text-align: right; }
+    .an-lap-vs-b { display: block; font-size: 10px; font-weight: 900; margin-top: 1px; }
     .an-lap-badge { font-size: 9px; padding: 2px 5px; border-radius: 5px; background: #222; color: #aaa; font-weight: 900; margin-left: 5px; }
     .an-lap-splits { display: none; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #333; grid-template-columns: repeat(4, 1fr); gap: 4px; font-family: monospace; font-size: 11px; }
     .an-lap-splits.open { display: grid; }
@@ -280,9 +281,9 @@
     <div class="an-section-card">
       <div class="an-section-header">
         <span>Andamento Passo Giro su Giro</span>
-        <span id="an-chart-legend" style="color:#00e676; font-size:10px;">VERDE = BEST A</span>
+        <span id="an-chart-legend" style="color:#00e676; font-size:10px; text-align:right;">VERDE = BEST A</span>
       </div>
-      <svg id="an-chart-svg" viewBox="0 0 340 86" preserveAspectRatio="none"></svg>
+      <svg id="an-chart-svg" viewBox="0 0 340 108" preserveAspectRatio="none"></svg>
     </div>
 
     <div class="an-section-header" style="padding: 0 2px;">
@@ -1145,7 +1146,6 @@
       if (!rawData) return "SENZA DATA";
       let primoPezzo = String(rawData).trim().split(" ")[0];
       if (!primoPezzo) return "SENZA DATA";
-      // Se formato ISO yyyy-mm-dd, converte in dd/mm/yyyy
       if (/^\d{4}-\d{2}-\d{2}$/.test(primoPezzo)) {
         let p = primoPezzo.split("-");
         return p[2] + "/" + p[1] + "/" + p[0];
@@ -1319,7 +1319,7 @@
       if ((trigger === 'date' || trigger === 'driver' || trigger === 'refresh') && prevDate && [...dateSel.options].some(o => o.value === prevDate)) {
         dateSel.value = prevDate;
       } else if (dateList.length > 0) {
-        dateSel.value = dateList[0]; // Ultima giornata di test/gara
+        dateSel.value = dateList[0];
       } else {
         dateSel.value = "__ALL__";
       }
@@ -1363,7 +1363,6 @@
         sessASel.value = sessioniGiorno[sessioniGiorno.length - 1];
       }
 
-      // Turno B: propone prima i turni dello stesso giorno, poi eventuali turni di altre date (stesso pilota/categoria/pista)
       sessBSel.innerHTML = '<option value="">NESSUNO</option>';
       sessioniGiorno.forEach(s => {
         sessBSel.add(new Option(s, s));
@@ -1504,6 +1503,7 @@
         document.getElementById('an-avg-val').innerText = "--:--.---";
         document.getElementById('an-laps-count').innerText = "0 GIRI";
         document.getElementById('an-consistency-val').innerText = "COSTANZA: --";
+        document.getElementById('an-chart-svg').innerHTML = "";
         document.getElementById('an-lap-list').innerHTML = '<div style="text-align:center; color:#888; padding:20px;">Nessun giro trovato per i filtri selezionati.</div>';
         return;
       }
@@ -1588,16 +1588,23 @@
       }
       document.getElementById('an-sec-tbody').innerHTML = tbodyHtml;
 
-      // 4. GRAFICO SVG COMPLETO DELLA SESSIONE
-      renderizzaGraficoAnalisi(mA, mB, sessBLabel);
+      // 4. GRAFICO SVG CON SOVRAPPOSIZIONE TURNO A vs TURNO B
+      renderizzaGraficoAnalisi(mA, mB, sessA, sessBLabel);
 
-      // 5. LISTA GIRI ESPANDIBILE
+      // 5. LISTA GIRI ESPANDIBILE (CON DELTA DIRETTO VS STESSO GIRO DEL TURNO B)
       let listHtml = "";
       mA.giri.forEach((g, idx) => {
         const isBest = g.lapMs === mA.bestMs;
         const diffBest = g.lapMs - mA.bestMs;
         const gapStr = isBest ? "BEST LAP" : "+" + formatDelta(diffBest).replace("+", "");
         const gapColor = isBest ? "#00e676" : (diffBest <= 150 ? "#ffffff" : "#ff9100");
+
+        let vsBHtml = "";
+        if (mB && mB.giri[idx]) {
+          const diffGiroB = g.lapMs - mB.giri[idx].lapMs;
+          const colB = diffGiroB < 0 ? "#00e676" : (diffGiroB > 0 ? "#ff9100" : "#00e5ff");
+          vsBHtml = '<span class="an-lap-vs-b" style="color:' + colB + ';">VS G' + (idx + 1) + ' B: ' + formatDelta(diffGiroB) + '</span>';
+        }
 
         let splitsHtml = "";
         for (let k = 0; k < 8; k++) {
@@ -1614,7 +1621,7 @@
             '<div class="an-lap-main">' +
               '<div><span class="an-lap-num">G' + (idx + 1) + '</span><span class="an-lap-badge">' + g.sessione + ' • ' + g.dataGiorno + '</span></div>' +
               '<div class="an-lap-time" style="color:' + (isBest ? '#00e676' : '#fff') + ';">' + msToTime(g.lapMs) + '</div>' +
-              '<div class="an-lap-gap" style="color:' + gapColor + ';">' + gapStr + '</div>' +
+              '<div class="an-lap-gap" style="color:' + gapColor + ';">' + gapStr + vsBHtml + '</div>' +
             '</div>' +
             '<div class="an-lap-splits">' + splitsHtml + '</div>' +
           '</div>';
@@ -1622,59 +1629,81 @@
       document.getElementById('an-lap-list').innerHTML = listHtml;
     }
 
-    function renderizzaGraficoAnalisi(mA, mB, sessBLabel) {
+    function renderizzaGraficoAnalisi(mA, mB, sessA, sessBLabel) {
       const svg = document.getElementById('an-chart-svg');
       const legend = document.getElementById('an-chart-legend');
-      const laps = mA.giri;
+      const lapsA = mA.giri || [];
+      const lapsB = (mB && mB.giri) ? mB.giri : [];
 
-      if (!laps || laps.length === 0) {
+      if (lapsA.length === 0) {
         svg.innerHTML = "";
         return;
       }
 
-      const times = laps.map(g => g.lapMs);
-      if (mB) times.push(mB.bestMs);
-      const minMs = Math.min(...times);
-      const maxMs = Math.max(...times);
+      const allTimes = lapsA.map(g => g.lapMs).concat(lapsB.map(g => g.lapMs));
+      const minMs = Math.min(...allTimes);
+      const maxMs = Math.max(...allTimes);
       const span = (maxMs - minMs) || 1;
+      const maxLaps = Math.max(lapsA.length, lapsB.length);
 
-      const padX = 14;
-      const padY = 12;
+      const padX = 16;
+      const padY = 16;
       const w = 340 - padX * 2;
-      const h = 86 - padY * 2;
+      const h = 108 - padY * 2;
 
-      const pts = laps.map((g, idx) => {
-        const x = laps.length === 1 ? 170 : padX + (idx / (laps.length - 1)) * w;
-        const norm = (g.lapMs - minMs) / span;
-        const y = (padY + h) - norm * h;
-        return { x: Number(x.toFixed(1)), y: Number(y.toFixed(1)), ms: g.lapMs };
-      });
+      const calcX = (idx) => maxLaps === 1 ? 170 : Number((padX + (idx / (maxLaps - 1)) * w).toFixed(1));
+      const calcY = (ms) => Number(((padY + h) - ((ms - minMs) / span) * h).toFixed(1));
+
+      const ptsA = lapsA.map((g, idx) => ({ x: calcX(idx), y: calcY(g.lapMs), ms: g.lapMs }));
+      const ptsB = lapsB.map((g, idx) => ({ x: calcX(idx), y: calcY(g.lapMs), ms: g.lapMs }));
 
       let markup = "";
 
-      if (mB) {
-        const yB = Number(((padY + h) - ((mB.bestMs - minMs) / span) * h).toFixed(1));
-        markup += '<line x1="' + padX + '" y1="' + yB + '" x2="' + (340 - padX) + '" y2="' + yB + '" stroke="#00e5ff" stroke-width="1.2" stroke-dasharray="4 3" />';
-        legend.innerText = "VERDE = BEST A | AZZURRO = BEST " + sessBLabel;
-        legend.style.color = "#00e5ff";
+      // Guide orizzontali minimo (basso = veloce) e massimo (alto = lento)
+      const yTop = padY;
+      const yBot = padY + h;
+      markup += '<line x1="' + padX + '" y1="' + yTop + '" x2="' + (340 - padX) + '" y2="' + yTop + '" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3 3" />';
+      markup += '<line x1="' + padX + '" y1="' + yBot + '" x2="' + (340 - padX) + '" y2="' + yBot + '" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="3 3" />';
+      markup += '<text x="' + padX + '" y="10" fill="#666" font-size="8" font-family="monospace" font-weight="bold">MAX ' + msToTime(maxMs) + '</text>';
+      markup += '<text x="' + padX + '" y="104" fill="#00e676" font-size="8" font-family="monospace" font-weight="bold">MIN ' + msToTime(minMs) + '</text>';
+      markup += '<text x="' + (340 - padX) + '" y="104" fill="#666" font-size="8" font-family="monospace" text-anchor="end">G1 → G' + maxLaps + '</text>';
+
+      // CURVA TURNO B (Sotto A per trasparenza, in Azzurro #00e5ff)
+      if (ptsB.length > 0) {
+        if (ptsB.length > 1) {
+          const polyPtsB = ptsB.map(p => p.x + "," + p.y).join(" ");
+          markup += '<polyline fill="none" stroke="#00e5ff" stroke-width="2" stroke-opacity="0.9" stroke-linejoin="round" stroke-linecap="round" points="' + polyPtsB + '" />';
+        }
+        ptsB.forEach(p => {
+          const isBestB = p.ms === mB.bestMs;
+          const rB = isBestB ? 4.3 : 2.7;
+          const strokeB = isBestB ? "#ffffff" : "#000000";
+          const swB = isBestB ? 1.4 : 1;
+          markup += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + rB + '" fill="#00e5ff" stroke="' + strokeB + '" stroke-width="' + swB + '" />';
+        });
+      }
+
+      // CURVA TURNO A (In primo piano, Giallo #ffeb3b + pallino Verde #00e676 sul Best A)
+      if (ptsA.length > 1) {
+        const polyPtsA = ptsA.map(p => p.x + "," + p.y).join(" ");
+        markup += '<polyline fill="none" stroke="#ffeb3b" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" points="' + polyPtsA + '" />';
+      }
+      ptsA.forEach(p => {
+        const isBestA = p.ms === mA.bestMs;
+        const fillA = isBestA ? "#00e676" : "#ffffff";
+        const rA = isBestA ? 4.8 : 3;
+        markup += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + rA + '" fill="' + fillA + '" stroke="#000" stroke-width="1" />';
+      });
+
+      svg.innerHTML = markup;
+
+      if (ptsB.length > 0) {
+        const labelA = sessA === "__ALL__" ? "TUTTE" : sessA;
+        legend.innerHTML = '<span style="color:#ffeb3b;">■ ' + labelA + '</span> &nbsp;|&nbsp; <span style="color:#00e5ff;">■ ' + sessBLabel + '</span>';
       } else {
         legend.innerText = "VERDE = BEST A (" + msToTime(mA.bestMs) + ")";
         legend.style.color = "#00e676";
       }
-
-      if (pts.length > 1) {
-        let polyPts = pts.map(p => p.x + "," + p.y).join(" ");
-        markup += '<polyline fill="none" stroke="#ffeb3b" stroke-width="2" points="' + polyPts + '" />';
-      }
-
-      pts.forEach(p => {
-        const isBest = p.ms === mA.bestMs;
-        const fill = isBest ? "#00e676" : "#ffffff";
-        const r = isBest ? 4.5 : 3;
-        markup += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + r + '" fill="' + fill + '" stroke="#000" stroke-width="1" />';
-      });
-
-      svg.innerHTML = markup;
     }
 
     function msToTime(s) {
