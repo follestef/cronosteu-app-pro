@@ -5,12 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>CronoPro</title>
-  <link rel="manifest" href="manifest.json?v=7">
+  <link rel="manifest" href="manifest.json?v=8">
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CronoPro">
-  <link rel="apple-touch-icon" href="icon-512.png?v=7">
+  <link rel="apple-touch-icon" href="icon-512.png?v=8">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #000; color: #fff; margin: 0; padding: 8px 10px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
@@ -1706,35 +1706,12 @@
       }
     }
 
-      // CURVA TURNO A (In primo piano, Giallo #ffeb3b + pallino Verde #00e676 sul Best A)
-      if (ptsA.length > 1) {
-        const polyPtsA = ptsA.map(p => p.x + "," + p.y).join(" ");
-        markup += '<polyline fill="none" stroke="#ffeb3b" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" points="' + polyPtsA + '" />';
-      }
-      ptsA.forEach(p => {
-        const isBestA = p.ms === mA.bestMs;
-        const fillA = isBestA ? "#00e676" : "#ffffff";
-        const rA = isBestA ? 4.8 : 3;
-        markup += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + rA + '" fill="' + fillA + '" stroke="#000" stroke-width="1" />';
-      });
-
-      svg.innerHTML = markup;
-
-      if (ptsB.length > 0) {
-        const labelA = sessA === "__ALL__" ? "TUTTE" : sessA;
-        legend.innerHTML = '<span style="color:#ffeb3b;">■ ' + labelA + '</span> &nbsp;|&nbsp; <span style="color:#00e5ff;">■ ' + sessBLabel + '</span>';
-      } else {
-        legend.innerText = "VERDE = BEST A (" + msToTime(mA.bestMs) + ")";
-        legend.style.color = "#00e676";
-      }
-    }
-
     function msToTime(s) {
       let ms = s % 1000; s = (s - ms) / 1000; let secs = s % 60; let mins = (s - secs) / 60;
       return (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs + '.' + (ms < 100 ? (ms < 10 ? '00' : '0') : '') + ms;
     }
 
-   if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js?v=8');
     }
   </script>
