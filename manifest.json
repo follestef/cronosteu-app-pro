@@ -1,23 +1,186 @@
-{
-  "name": "Cronosteu Pro",
-  "short_name": "CronoPro",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
-  "orientation": "portrait",
-  "icons": [
-    {
-      "src": "icon-512.png?v=8",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icon-512.png?v=8",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
-  ]
-}
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>CronoPro</title>
+  <link rel="manifest" href="manifest.json?v=8">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CronoPro">
+  <link rel="apple-touch-icon" href="icon-512.png?v=8">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #000; color: #fff; margin: 0; padding: 8px 10px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
+    .display { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+    #lap-counter { font-size: 17px; color: #00e676; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
+    #sub-info { font-size: 13px; color: #ffeb3b; text-transform: uppercase; font-weight: bold; margin-bottom: 3px; }
+    #sync-status-bar { display: none; background: #ff9100; color: #000; font-size: 11px; font-weight: 900; padding: 3px 10px; border-radius: 12px; margin-bottom: 3px; cursor: pointer; letter-spacing: 0.5px; text-transform: uppercase; }
+    #main-time { font-size: 62px; font-weight: 900; font-family: 'monospace'; margin: 0; line-height: 1; color: #fff; }
+    #intertempo { font-size: 18px; color: #00e5ff; font-family: 'monospace'; height: 42px; margin-top: 4px; font-weight: bold; line-height: 1.15; }
+    
+    /* GRAFICO A LINEE TREND SEQUENZA GIRI (SOPRA IL DELTA) */
+    #lap-chart-box { width: 100%; height: 42px; background: #0d0d0d; border: 1px solid #262626; border-radius: 8px; margin-bottom: 5px; padding: 3px 8px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-family: monospace; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1; }
+    #chart-title { color: #888; }
+    #chart-trend-badge { color: #666; }
+    #lap-sparkline { width: 100%; height: 24px; display: block; overflow: visible; }
+
+    /* DELTA CUMULATIVO LIVE SOPRA LE BARRETTE */
+    #lap-delta { font-size: 15px; font-weight: 900; font-family: monospace; text-align: center; color: #666; letter-spacing: 1px; height: 19px; line-height: 19px; margin-bottom: 5px; text-transform: uppercase; }
+
+    /* BARRETTE PERFORMANCE SETTORI CON ETICHETTA S1-S8 (MAX 8 SPLIT) */
+    .sector-bars { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin-bottom: 7px; width: 100%; }
+    .sec-bar { height: 20px; border-radius: 6px; background: #1c1c1c; border: 1px solid #333; color: #666; font-size: 11px; font-weight: 900; font-family: monospace; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr; background: #111; border: 1px solid #333; border-radius: 10px; padding: 6px 8px; margin-bottom: 8px; }
+    .stat-box { text-align: center; } .stat-label { font-size: 10px; color: #aaa; text-transform: uppercase; } .stat-val { font-size: 17px; font-weight: bold; font-family: monospace; }
+    .action-grid, .rival-action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 8px; }
+    .btn { width: 100%; border-radius: 20px; color: #fff; font-weight: 900; text-transform: uppercase; border: none; cursor: pointer; position: relative; }
+    .split-btn { height: 112px; font-size: 31px; background: #2979ff; box-shadow: 0 5px 0 #1565c0; }
+    .lap-btn { height: 112px; font-size: 42px; background: #d50000; box-shadow: 0 5px 0 #b71c1c; }
+    .r-split-giant { height: 112px; font-size: 25px; background: #1976d2; box-shadow: 0 5px 0 #0d47a1; }
+    .r-lap-giant { height: 112px; font-size: 31px; background: #b71c1c; box-shadow: 0 5px 0 #7f0000; }
+    .rival-container { display: flex; gap: 10px; margin-bottom: 8px; width: 100%; }
+    .rival-input { width: 30%; height: 62px; border-radius: 20px; background: #000; color: #fff; border: 2px solid #555; text-align: center; font-size: 1.4rem; font-weight: bold; font-family: monospace; }
+    .rival-btn { flex: 1; height: 62px; background: #7cc2f2; color: #000; font-size: 19px; border-radius: 40px; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 0 #5a9bc7; margin: 0; font-weight: 900; }
+    .bottom-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .home-btn { height: 50px; background: #ff9800; font-size: 15px; color: #fff; }
+    .stop-btn { height: 50px; background: #c62828; font-size: 17px; }
+    .reset-btn { height: 50px; background: #444; font-size: 15px; }
+    
+    #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 6000; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+    .login-input { width: 100%; max-width: 320px; height: 50px; background: #222; border: 2px solid #ff9800; border-radius: 15px; color: #fff; text-align: center; font-size: 1.3rem; font-weight: bold; text-transform: uppercase; margin-bottom: 15px; }
+
+    #mechanic-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; background: black; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 15px; box-sizing: border-box; display: none; }
+    .team-logo { max-width: 100px; max-height: 76px; border-radius: 14px; padding: 4px; margin-bottom: 6px; object-fit: contain; }
+    #mechanic-overlay h2 { color: #ff9800; font-size: 1.45rem; margin: 0 0 6px 0; text-transform: uppercase; font-weight: 900; }
+    .overlay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 380px; margin-bottom: 8px; }
+    .square-box { height: 82px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; font-size: 0.82rem; border: none; cursor: pointer; position: relative; color: white; text-transform: uppercase; }
+    .square-box i { font-size: 1.55rem; margin-bottom: 4px; } .square-box select { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+    .bg-blue { background: #3498db; } .bg-orange { background: #e67e22; } .bg-green { background: #27ae60; } .bg-purple { background: #9b59b6; } .bg-red { background: #e74c3c; } .bg-yellow { background: #f1c40f; color: black !important; }
+    
+    .wide-voice-bar { width: 100%; max-width: 380px; height: 46px; background: #222; border: 2px dashed #ff3d00; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; margin-bottom: 8px; box-sizing: border-box; transition: all 0.3s ease; }
+    .wide-voice-bar i { font-size: 1.25rem; color: #ff3d00; }
+    #voice-status { font-size: 12px; color: #fff; font-weight: bold; text-transform: uppercase; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .listening-active { background: #ff1744 !important; border: 2px solid #fff !important; animation: pulseBar 1.5s infinite; }
+    .listening-active i, .listening-active #voice-status { color: #fff !important; }
+    @keyframes pulseBar { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
+
+    .remote-sheet-bar { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 8px; width: 100%; max-width: 380px; margin-bottom: 8px; }
+    .btn-sheet-save { height: 42px; border-radius: 12px; background: #00897b; color: #fff; border: none; font-weight: 900; font-size: 11px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .btn-sheet-both { height: 42px; border-radius: 12px; background: #1976d2; color: #fff; border: 1px solid #64b5f6; font-weight: 900; font-size: 11px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .btn-sheet-clear { height: 42px; border-radius: 12px; background: #b71c1c; color: #fff; border: none; font-weight: 900; font-size: 11px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+
+    .paddock-bottom-actions { display: grid; grid-template-columns: 1.55fr 1fr; gap: 10px; width: 100%; max-width: 380px; }
+    .btn-analisi-paddock { height: 54px; border-radius: 15px; background: #00b0ff; color: #000; border: none; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; box-shadow: 0 4px 0 #0081cb; }
+    .btn-analisi-paddock i { font-size: 1.25rem; }
+
+    .btn-logout { position: absolute; top: 12px; right: 12px; background: #333; color: #ff5252; border: 1px solid #ff5252; border-radius: 10px; padding: 6px 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
+
+    /* ===================================================================== */
+    /* 📊 SCHERMATA ANALISI MOBILE & CONFRONTO TURNI A vs B                  */
+    /* ===================================================================== */
+    #analysis-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5500; background: #050505; display: none; flex-direction: column; padding: 10px; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .an-topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .an-back-btn { background: #ff9800; color: #000; border: none; border-radius: 10px; padding: 8px 12px; font-weight: 900; font-size: 12px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .an-title-box { text-align: center; flex: 1; }
+    .an-title-box h3 { margin: 0; font-size: 15px; color: #00e5ff; font-weight: 900; letter-spacing: 0.8px; text-transform: uppercase; }
+    #an-sync-label { font-size: 10px; color: #888; font-family: monospace; text-transform: uppercase; }
+    .an-refresh-btn { background: #1e1e1e; color: #00e676; border: 1px solid #00e676; border-radius: 10px; padding: 8px 11px; font-weight: 900; font-size: 12px; cursor: pointer; }
+
+    .an-filters-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+    .an-filters-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+    .an-filter-box { background: #141414; border: 1px solid #333; border-radius: 9px; padding: 4px 6px; display: flex; flex-direction: column; }
+    .an-filter-box.highlight-box { border-color: #00838f; background: #0b191c; }
+    .an-filter-box label { font-size: 9px; color: #aaa; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
+    .an-filter-box select { background: #000; color: #fff; border: 1px solid #444; border-radius: 6px; padding: 4px 3px; font-size: 11px; font-weight: 900; text-transform: uppercase; width: 100%; }
+
+    .an-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 8px; margin-top: 2px; }
+    .an-kpi-card { background: #111; border: 1px solid #2b2b2b; border-radius: 11px; padding: 7px 9px; text-align: center; }
+    .an-kpi-label { font-size: 10px; color: #999; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
+    .an-kpi-val { font-size: 20px; font-weight: 900; font-family: monospace; margin: 2px 0; }
+    .an-kpi-sub { font-size: 11px; font-family: monospace; font-weight: bold; color: #888; }
+
+    .an-notes-box { background: #14120a; border: 1px solid #4a3b10; border-radius: 10px; padding: 7px 10px; margin-bottom: 8px; font-size: 11px; line-height: 1.35; }
+    .an-notes-title { font-size: 10px; color: #ffeb3b; font-weight: 900; text-transform: uppercase; margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
+    .an-note-row { color: #eee; margin-bottom: 2px; }
+
+    .an-section-card { background: #0f0f0f; border: 1px solid #262626; border-radius: 11px; padding: 8px; margin-bottom: 8px; }
+    .an-section-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 900; color: #00e5ff; text-transform: uppercase; margin-bottom: 6px; gap: 6px; }
+    #an-chart-svg { width: 100%; height: 108px; display: block; background: #070707; border-radius: 8px; border: 1px solid #1e1e1e; }
+
+    .an-sec-table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 12px; }
+    .an-sec-table th { font-size: 10px; color: #999; text-align: center; padding: 4px 2px; border-bottom: 1px solid #2a2a2a; text-transform: uppercase; }
+    .an-sec-table td { padding: 5px 3px; text-align: center; border-bottom: 1px solid #1c1c1c; font-weight: bold; }
+    .an-sec-table tr:last-child td { border-bottom: none; }
+
+    .an-lap-list { display: flex; flex-direction: column; gap: 5px; padding-bottom: 18px; }
+    .an-lap-item { background: #121212; border: 1px solid #2a2a2a; border-radius: 10px; padding: 7px 10px; cursor: pointer; }
+    .an-lap-item.best-lap-row { border-color: #00e676; background: #0b1c12; }
+    .an-lap-main { display: flex; justify-content: space-between; align-items: center; font-family: monospace; }
+    .an-lap-num { font-size: 12px; font-weight: 900; color: #aaa; }
+    .an-lap-time { font-size: 16px; font-weight: 900; color: #fff; }
+    .an-lap-gap { font-size: 12px; font-weight: 900; text-align: right; }
+    .an-lap-vs-b { display: block; font-size: 10px; font-weight: 900; margin-top: 1px; }
+    .an-lap-badge { font-size: 9px; padding: 2px 5px; border-radius: 5px; background: #222; color: #aaa; font-weight: 900; margin-left: 5px; }
+    .an-lap-splits { display: none; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #333; grid-template-columns: repeat(4, 1fr); gap: 4px; font-family: monospace; font-size: 11px; }
+    .an-lap-splits.open { display: grid; }
+    .an-split-pill { background: #1a1a1a; border-radius: 6px; padding: 3px 4px; text-align: center; color: #ddd; }
+    .an-split-pill span { color: #00e5ff; font-weight: 900; }
+  </style>
+</head>
+<body>
+
+  <select id="pilota" style="display:none;"></select> 
+  <input type="hidden" id="sessione">
+  <input type="hidden" id="nota-vocale-testo" value="">
+
+  <!-- 🔐 OVERLAY DI LOGIN -->
+  <div id="login-overlay">
+    <h2 style="color: #fff; font-weight: 900; letter-spacing: 1px;">CRONOSTEU PRO</h2>
+    <img src="https://i.postimg.cc/34nxWxHr/b4c7793b-5a42-423c-9991-b5bb88d8b1a2.jpg" style="max-width: 160px; margin-bottom: 25px; border-radius: 15px;">
+    <input type="text" id="codice-scuderia-input" class="login-input" placeholder="CODICE SCUDERIA">
+    <button class="square-box bg-yellow" style="width: 100%; max-width: 320px; height: 55px;" onclick="autenticaLicenza()"><i class="fa-solid fa-unlock-keyhole"></i><span>SBLOCCA APPLICAZIONE</span></button>
+  </div>
+
+  <!-- 🛰️ OVERLAY PADDOCK -->
+  <div id="mechanic-overlay">
+    <button class="btn-logout" onclick="disconnettiScuderia()"><i class="fa-solid fa-power-off"></i> RESET LICENZA</button>
+    <h2 id="titolo-paddock">PADDOCK</h2>
+    <img id="logo-dinamico-team" src="" class="team-logo">
+    
+    <div class="overlay-grid">
+      <div class="square-box bg-blue"><i class="fa-solid fa-wrench"></i><span id="label-mechanic">MECCANICO</span><select id="mechanic-select" onchange="updateOverlayLabel('mechanic')"><option value="" disabled selected>SCEGLI...</option></select></div>
+      <div class="square-box bg-orange"><i class="fa-solid fa-tags"></i><span id="label-category">CATEGORIA</span><select id="category-select" onchange="updateOverlayLabel('category')"><option value="" disabled selected>SCEGLI...</option></select></div>
+      <div class="square-box bg-green"><i class="fa-solid fa-map-marked-alt"></i><span id="label-track">PISTA</span><select id="track-select" onchange="updateOverlayLabel('track')"><option value="" disabled selected>SCEGLI...</option></select></div>
+      <div class="square-box bg-purple"><i class="fa-solid fa-user-astronaut"></i><span id="label-driver">PILOTA</span><select id="driver-select" onchange="updateOverlayLabel('driver')"><option value="" disabled selected>SCEGLI...</option></select></div>
+      <div class="square-box bg-red" style="grid-column: span 2; height: 68px;"><i class="fa-solid fa-flag-checkered"></i><span id="label-session">TIPO PROVA</span><select id="session-select" onchange="updateOverlayLabel('session')"><option value="" disabled selected>SCEGLI...</option></select></div>
+    </div>
+    
+    <div class="wide-voice-bar" id="voice-bar-btn" onclick="toggleVoiceRecognition();">
+      <i class="fa-solid fa-microphone" id="mic-icon"></i>
+      <span id="voice-status">PREMI E DETTA NOTE ASSETTO</span>
+    </div>
+
+    <div class="remote-sheet-bar">
+      <button class="btn-sheet-save" onclick="comandoFoglioRemoto('salvaFoglioTeam')"><i class="fa-solid fa-floppy-disk"></i> SALVA</button>
+      <button class="btn-sheet-both" onclick="comandoFoglioRemoto('salvaECancellaFoglioTeam')"><i class="fa-solid fa-rotate"></i> SALVA + PULISCI</button>
+      <button class="btn-sheet-clear" onclick="comandoFoglioRemoto('cancellaFoglioTeam')"><i class="fa-solid fa-trash-can"></i> CANCELLA</button>
+    </div>
+
+    <div class="paddock-bottom-actions">
+      <button class="square-box bg-yellow" style="width: 100%; height: 54px;" onclick="confirmOverlayAll()"><i class="fa-solid fa-play"></i><span>ENTRA IN PISTA</span></button>
+      <button class="btn-analisi-paddock" onclick="apriAnalisiOverlay()"><i class="fa-solid fa-chart-line"></i><span>ANALISI</span></button>
+    </div>
+  </div>
+
+  <!-- 📊 OVERLAY ANALISI SESSIONE & CONFRONTO TURNI -->
+  <div id="analysis-overlay">
+    <div class="an-topbar">
+      <button class="an-back-btn" onclick="chiudiAnalisiOverlay()"><i class="fa-solid fa-arrow-left"></i> PADDOCK</button>
+      <div class="an-title-box">
+        <h3>ANALISI TELEMETRIA</h3>
+        <div id="an-sync-label">PRONTO
